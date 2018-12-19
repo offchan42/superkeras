@@ -64,7 +64,7 @@ def PermutationalEncoder(
     # Arguments
         pairwise_model: The model that takes 2 inputs tensor and return one input tensor
         n_inputs: Number of permutationally invariant input tensors with identical shape. The shape will be inferred from pairwise model.
-        main_index: A number ranging from 0 to len(inputs) to tell which input is the main one.
+        main_index: A number ranging from 0 to `n_inputs` to tell which input is the main one.
         merge_func: A function to apply to the list of final encodings.
             If not set, the default mean function the same as in the paper will be used.
         encode_identical: Whether to run pairwise model on the main input paired with main input or not.
@@ -99,17 +99,17 @@ def PermutationalEncoder(
 
 def PermutationalLayer(permutational_encoder, **kwargs):
     """
-    A model that takes in a list of N input tensors with identical shape
-    and return a list of N output tensors with identical shape.
+    A model that takes in a list of N input tensors with identical shape,
+    permutate the list `N` times, apply `permutational_encoder` to each permutation,
+    and return a list of N output tensors from the encoder with identical shape.
     The list length and shape of the input and output is inferred from the `permutational_encoder` provided.
     Each output tensor is preserving permutational invariance property.
 
-    You can stack this layer on top of each other quite fine.
+    You can stack this layer on top of each other like it's a Dense layer.
     To obtain a single tensor output from this layer, just apply a merging function
     to the list of outputs (e.g. average, sum, max, or even concatenate).
 
-    Note: Even though it's named a layer, it's actually a Model instance.
-    Later I may convert all these to Layer instances. But now Model is easy to write and work fine.
+    Note: Even though it's named a layer, under the hood it's actually a Model instance.
     """
     inputs = [
         Input(batch_shape=batch_shape, name=f"x{i+1}")
@@ -179,7 +179,7 @@ if __name__ == "__main__":
     outputs = perm_layer3(outputs)
     # I can even reuse this layer because the input shape and output shape of it is identical. but don't try this at home unless you know what you are doing.
     outputs = perm_layer3(outputs)
-    output = average(outputs) # let's average the output for single tensor
+    output = average(outputs)  # let's average the output for single tensor
     model = Model(inputs, output)
     print("# Multi-layer model summary")
     model.summary()
