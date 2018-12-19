@@ -50,7 +50,7 @@ As you add more permutational layers, the rate of input relationship grows expon
     properties -> object -> pairwise model -> permutational encoder -> permutational layer -> permutational module
 """
 from kerashelper import repeat_layers, LayerStack
-from keras.layers import Input, concatenate, Dense, average
+from keras.layers import Input, concatenate, Dense, average, maximum
 from keras.models import Model
 
 
@@ -81,7 +81,7 @@ def PermutationalEncoder(
     pairwise_model,
     n_inputs,
     main_index=0,
-    pooling=average,
+    pooling=maximum,
     encode_identical=True,
     **kwargs,
 ):
@@ -95,7 +95,7 @@ def PermutationalEncoder(
         n_inputs: Number of permutationally invariant input tensors with identical shape. The shape will be inferred from pairwise model.
         main_index: A number ranging from [0, n_inputs) to tell which input is the main one.
         pooling: A function to apply to the list of final encodings to merge them into one encoding tensor.
-            If not set, the default average function will be used like in the paper.
+            If not set, the default maximum function will be used as it shows the best result in the paper.
         encode_identical: Whether to run pairwise model on the main input paired with main input or not.
             The paper sets this to True. They run pairwise model also on the same inputs.
 
@@ -141,7 +141,6 @@ def PermutationalLayer(permutational_encoder, pooling=None, **kwargs):
     To obtain a single tensor output from this layer, just provide a pooling function
     to be applied to the list of outputs (e.g. average, sum, max, or even concatenate).
     Or you can apply the pooling function on the outputs of the model yourself.
-    One of the suggested pooling function is `max` because it shows good result in the paper.
 
     Note: Even though it's named a layer, under the hood it's actually a Model instance.
     """
@@ -166,7 +165,7 @@ def PermutationalModule(
     input_shape,
     n_inputs,
     layers_stack,
-    encoder_pooling=average,
+    encoder_pooling=maximum,
     last_layer_pooling=None,
     summary=True,
     name="permutational_module",
@@ -189,6 +188,7 @@ def PermutationalModule(
         layers_stack: A list of layers list.
             layers_stack[i] = A list of layers for pairwise model i
         encoder_pooling: The pooling function for permutational encoder to use.
+            The default is maximum as it shows the best result in the paper.
         last_layer_pooling: The pooling function for the last permutational layer.
             We only allow last layer pooling because applying pooling to
             intermediate permutational layers do not make sense as it collapses
