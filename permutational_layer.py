@@ -6,6 +6,32 @@ Link to the paper: https://arxiv.org/pdf/1612.04530.pdf
 Accurate Implementation using Keras Functional API. Deep learning for human.
 Supports multiple layers.
 
+In order to understand permutational layer, let us first understand the simplest
+idea of incorporating permutation invariance property into neural networks first.
+Suppose you have 3 inputs with permutation invariance property.
+Create a model that sees only one input, and output an encoding.
+Apply this same model (shared weight) to all the inputs so you get 3 encodings.
+If you sum the encodings together, you are going to get encoding X.
+If you permute the input order, you are still going to get the encoding X.
+This is simple way to incorporate permutation invariance.
+
+The problem is that the model sees only one input at a time. It can not consider
+the relationship between the inputs. It does preserve invariance property but
+it does not give good accuracy on the dataset because it cannot fit the data well.
+If you try to make the model sees more than one input,
+you are going to violate the invariance property if not done properly.
+
+This paper presents a solution to make the model sees more than one input
+and still preserve invariance property. The idea is called permutational layer.
+
+A permutational layer is a layer that takes N inputs, and encode them individually
+resulting in N outputs. if input[i] = input[j], then output[i] = output[j] also.
+The encoder inside each layer compares all pairs of inputs.
+The output of the layer preserves permutation invariance property like the input.
+The benefit of permutational layer is that output[i] is influenced by all inputs.
+This make the model relates the information between each input better.
+As you add more permutational layers, the rate of input relationship grows exponentially.
+
 # Concepts introduced in this code (and some from the paper)
     properties: A vector representing an object. E.g. 4 numbers representing position XY, and velocity XY.
     object: The input to the system. 2 objects when swapped should not change the meaning of the network's predictions
@@ -17,9 +43,11 @@ Supports multiple layers.
     permutational layer: The model that takes N objects, apply permutational encoder to each of the object,
         resulting in N distinct encodings. These encodings are still preserving the permutational-invariance property.
         It means that you can apply many permutational layers on top of each other.
+    permutational module: The model that takes N objects, apply multiple permutational layers sequentially to the objects.
+        The last permutational layer can use pooling function to reduce output to one tensor.
 
 # Structure of the concepts from concrete to abstract
-    properties -> object -> pairwise model -> permutational encoder -> permutational layer
+    properties -> object -> pairwise model -> permutational encoder -> permutational layer -> permutational module
 """
 from kerashelper import repeat_layers, LayerStack
 from keras.layers import Input, concatenate, Dense, average
@@ -58,7 +86,7 @@ def PermutationalEncoder(
     **kwargs,
 ):
     """
-    Create a model which takes a list of `n_input` tensors with identical shape
+    Create a model which takes a list of `n_inputs` tensors with identical shape
     and outputs a tensor representing the main input's encoding.
     Tensor shape of both input and output are inferred from `pairwise_model`.
 
@@ -131,6 +159,100 @@ def PermutationalLayer(permutational_encoder, pooling=None, **kwargs):
     if pooling:
         output = pooling(output)
     model = Model(inputs, output, **kwargs)
+    return model
+
+
+def PermutationalModule(
+    input_shape,
+    n_inputs,
+    layers_stack,
+    encoder_pooling=average,
+    last_layer_pooling=None,
+    summary=True,
+    name="permutational_module",
+    **kwargs,
+):
+    """
+    Create a model that performs multiple PermutationalLayer after one another.
+    The input to the model must be a list of `n_inputs` tensors.
+    The output will also be a list of `n_inputs` tensor if `last_layer_pooling` is None.
+    If `last_layer_pooling` is set, the output will be a single tensor.
+    
+    This function simplifies the entire process of using permutational layers
+    as it makes the process more high level.
+    PermutationalLayer, PermutationalEncoder, and PairwiseModel are automatically created for you.
+    If you don't want to deal with too much detail on how to stack PermutationalLayer
+    together, just use this function.
+    # Arguments
+        input_shape: Input shape of one individual input without batch dimension.
+        n_inputs: How many inputs to setup PermutationalEncoder for
+        layers_stack: A list of layers list.
+            layers_stack[i] = A list of layers for pairwise model i
+        encoder_pooling: The pooling function for permutational encoder to use.
+        last_layer_pooling: The pooling function for the last permutational layer.
+            We only allow last layer pooling because applying pooling to
+            intermediate permutational layers do not make sense as it collapses
+            `n_inputs` to 1 for subsequent permutational layers.
+        summary: Whether or not to print summary
+    
+    # Returns
+        A model that consumes `n_inputs` tensors and output `n_inputs` tensors
+        or output 1 tensor if `last_layer_pooling` is not None.
+    
+    # Example
+        Create a module with 2 permutational layers, the last layer is pooled using max function.
+        Each permutational layer consists of a pairwise model that has 2 Dense layers.
+        >>> PermutationalModule(receiver_input_shape, 3, [repeat_layers(Dense, [2, 4]), repeat_layers(Dense, [8, 16])], last_layer_pooling=maximum)
+        permutational_module
+        __________________________________________________________________________________________________
+        Layer (type)                    Output Shape         Param #     Connected to                     
+        ==================================================================================================
+        x1 (InputLayer)                 (None, 4)            0                                            
+        __________________________________________________________________________________________________
+        x2 (InputLayer)                 (None, 4)            0                                            
+        __________________________________________________________________________________________________
+        x3 (InputLayer)                 (None, 4)            0                                            
+        __________________________________________________________________________________________________
+        permutational_layer_1 (Model)   [(None, 4), (None, 4 30          x1[0][0]                         
+                                                                        x2[0][0]                         
+                                                                        x3[0][0]                         
+        __________________________________________________________________________________________________
+        permutational_layer_2 (Model)   (None, 16)           216         permutational_layer_1[1][0]      
+                                                                        permutational_layer_1[1][1]      
+                                                                        permutational_layer_1[1][2]      
+        ==================================================================================================
+        Total params: 246
+        Trainable params: 246
+        Non-trainable params: 0
+        __________________________________________________________________________________________________
+        <keras.engine.training.Model at 0x2e2089774a8>
+    """
+    inputs = [Input(shape=input_shape, name=f"x{i+1}") for i in range(n_inputs)]
+    outputs = inputs
+    n_perm_layers = len(layers_stack)
+    for i, layers in enumerate(layers_stack):
+        # figure out whether to use pooling or not
+        is_last_layer = n_perm_layers - 1 == i
+        pooling = last_layer_pooling if is_last_layer else None
+
+        perm_layer = PermutationalLayer(
+            PermutationalEncoder(
+                PairwiseModel(input_shape, layers, name=f"pairwise_model_{i+1}"),
+                n_inputs,
+                pooling=encoder_pooling,
+                name=f"permutational_encoder_{i+1}",
+            ),
+            pooling=pooling,
+            name=f"permutational_layer_{i+1}",
+        )
+
+        outputs = perm_layer(outputs)
+        if not is_last_layer:
+            input_shape = perm_layer.output_shape[0][1:]
+    model = Model(inputs, outputs, name=name, **kwargs)
+    if summary:
+        print(model.name)
+        model.summary()
     return model
 
 
@@ -214,3 +336,7 @@ if __name__ == "__main__":
     print(model.predict(x))
     print()
     print("Isn't this cool !?")
+    print()
+    print("After you understand the internal working of permutational layers,")
+    print("you can use PermutationalModule() as a high-level function to construct")
+    print("all the layer components quicker. Read its docstring to see how to use.")
