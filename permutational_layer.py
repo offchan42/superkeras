@@ -40,8 +40,8 @@ def PairwiseModel(individual_shape, sequential_layers, **kwargs):
     # Returns
         A pairwise model which takes 2 input tensors and returns one output tensor
     """
-    x1 = Input(individual_shape, name="x1")
-    x2 = Input(individual_shape, name="x2")
+    x1 = Input(shape=individual_shape, name="x1")
+    x2 = Input(shape=individual_shape, name="x2")
     x_pair = [x1, x2]
     x_concat = concatenate(x_pair)
     dense_stack = LayerStack(sequential_layers)
@@ -167,9 +167,9 @@ if __name__ == "__main__":
     )
 
     ## now let's make a model with multi permutational layers to show you that it's possible!
-    a = Input((4,), name="a")
-    b = Input((4,), name="b")
-    c = Input((4,), name="c")
+    a = Input(shape=(4,), name="a")
+    b = Input(shape=(4,), name="b")
+    c = Input(shape=(4,), name="c")
     inputs = [a, b, c]
     outputs = perm_layer(inputs)
     perm_layer2 = PermutationalLayer(
