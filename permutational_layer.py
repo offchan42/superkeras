@@ -53,25 +53,26 @@ def PermutationalEncoder(
     pairwise_model,
     n_inputs,
     main_index=0,
-    merge_func=average,
+    pooling=average,
     encode_identical=True,
     **kwargs,
 ):
     """
-    Create a model which takes a list of `n_input` tensors and outputs a tensor representing the main input's encoding.
+    Create a model which takes a list of `n_input` tensors with identical shape
+    and outputs a tensor representing the main input's encoding.
     Tensor shape of both input and output are inferred from `pairwise_model`.
 
     # Arguments
         pairwise_model: The model that takes 2 inputs tensor and return one input tensor
         n_inputs: Number of permutationally invariant input tensors with identical shape. The shape will be inferred from pairwise model.
-        main_index: A number ranging from 0 to `n_inputs` to tell which input is the main one.
-        merge_func: A function to apply to the list of final encodings.
-            If not set, the default mean function the same as in the paper will be used.
+        main_index: A number ranging from [0, n_inputs) to tell which input is the main one.
+        pooling: A function to apply to the list of final encodings to merge them into one encoding tensor.
+            If not set, the default average function will be used like in the paper.
         encode_identical: Whether to run pairwise model on the main input paired with main input or not.
             The paper sets this to True. They run pairwise model also on the same inputs.
 
     # Returns
-        The permutational encoder model that takes a list of input tensors and returns a single tensor.
+        The permutational encoder model that takes a list of input tensors and returns an encoding tensor for the main input.
 
     """
     assert n_inputs >= 2
@@ -92,12 +93,12 @@ def PermutationalEncoder(
         other_input = inputs[other_index]
         encoding = pairwise_model([main_input, other_input])
         encodings.append(encoding)
-    model = Model(inputs, merge_func(encodings), **kwargs)
+    model = Model(inputs, pooling(encodings), **kwargs)
     model.main_index = main_index
     return model
 
 
-def PermutationalLayer(permutational_encoder, **kwargs):
+def PermutationalLayer(permutational_encoder, pooling=None, **kwargs):
     """
     A model that takes in a list of N input tensors with identical shape,
     permutate the list `N` times, apply `permutational_encoder` to each permutation,
@@ -105,9 +106,14 @@ def PermutationalLayer(permutational_encoder, **kwargs):
     The list length and shape of the input and output is inferred from the `permutational_encoder` provided.
     Each output tensor is preserving permutational invariance property.
 
+    If `pooling` function is set, it will be applied to the list of output tensors from `permutational_encoder`.
+    Then a single tensor output will be returned from the model, instead of a list of N tensors.
+
     You can stack this layer on top of each other like it's a Dense layer.
-    To obtain a single tensor output from this layer, just apply a merging function
-    to the list of outputs (e.g. average, sum, max, or even concatenate).
+    To obtain a single tensor output from this layer, just provide a pooling function
+    to be applied to the list of outputs (e.g. average, sum, max, or even concatenate).
+    Or you can apply the pooling function on the outputs of the model yourself.
+    One of the suggested pooling function is `max` because it shows good result in the paper.
 
     Note: Even though it's named a layer, under the hood it's actually a Model instance.
     """
@@ -121,7 +127,10 @@ def PermutationalLayer(permutational_encoder, **kwargs):
         inputs_permuted = [x for x in inputs]  # copy the list for permutation
         move_item(inputs_permuted, main_index, permutational_encoder.main_index)
         encodings.append(permutational_encoder(inputs_permuted))
-    model = Model(inputs, encodings, **kwargs)
+    output = encodings
+    if pooling:
+        output = pooling(output)
+    model = Model(inputs, output, **kwargs)
     return model
 
 
