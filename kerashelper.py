@@ -1,3 +1,6 @@
+from keras.layers import Lambda
+
+
 class LayerStack:
     """
     Represent keras layers. Can be called on a tensor to get the output after passing through the stack.
@@ -24,8 +27,12 @@ class LayerStack:
             raise ValueError("`keras_layers` must be a list or a keras Model instance.")
         self.layers = keras_layers
 
-    def __call__(self, tensor):
-        return call_layers(self.layers, tensor)
+    def __call__(self, tensors, name=None):
+        """Call and return the tensor with given name"""
+        out = call_layers(self.layers, tensors)
+        if name:
+            out = rename_tensor(out, name)
+        return out
 
 
 def repeat_layers(layer_class, *args, name=None, name_start_index=1, **kwargs):
@@ -209,3 +216,8 @@ def call_layers(layers, tensor):
     for layer in layers:
         tensor = layer(tensor)
     return tensor
+
+
+def rename_tensor(tensor, name, **kwargs):
+    """Create an identity Lambda layer and call it on `tensor`, mainly to rename it."""
+    return Lambda(lambda x: x, name=name, **kwargs)(tensor)
