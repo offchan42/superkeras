@@ -52,6 +52,7 @@ As you add more permutational layers, the rate of input relationship grows expon
 from kerashelper import repeat_layers, LayerStack
 from keras.layers import Input, concatenate, Dense, average, maximum
 from keras.models import Model
+from inspect import signature
 
 
 def move_item(a_list, from_idx, to_idx):
@@ -59,11 +60,23 @@ def move_item(a_list, from_idx, to_idx):
     a_list.insert(to_idx, a_list.pop(from_idx))
 
 
-def PairwiseModel(individual_shape, sequential_layers, **kwargs):
+def PairwiseModel(individual_shape, layers, concat_axis=-1, **kwargs):
     """
     Create a model that accepts 2 input tensors, each having shape `individual_shape`.
-    The input tensors are concatenated and fed to each layer inside `sequential_layers`.
-    The output of the model will be the tensor output from the last layer of `sequential_layers`.
+    The output of the model will be the tensor output from the last layer of `layers`.
+
+    If `layers` is a list, the model will use it to create layers.
+    Two tensor inputs will be created, concatenated, and sent to each layer one after another.
+
+    If `layers` is a callable then two input tensors will be fed to it
+    without concatenation, and the callable is expected to return a tensor output.
+
+    # Arguments
+        individual_shape: Shape of each input tensor without batch dimension
+        layers: List of layers or a callable that takes 2 tensors and output a tensor.
+        concat_axis: Concatenation axis of the 2 input tensors
+            Will not be used if `layers` is callable.
+        **kwargs: Arguments to send to Model()
 
     # Returns
         A pairwise model which takes 2 input tensors and returns one output tensor
@@ -71,9 +84,22 @@ def PairwiseModel(individual_shape, sequential_layers, **kwargs):
     x1 = Input(shape=individual_shape, name="x1")
     x2 = Input(shape=individual_shape, name="x2")
     x_pair = [x1, x2]
-    x_concat = concatenate(x_pair)
-    dense_stack = LayerStack(sequential_layers)
-    output_features = dense_stack(x_concat)
+    if isinstance(layers, list):
+        x_concat = concatenate(x_pair, axis=concat_axis)
+        dense_stack = LayerStack(layers)
+        output_features = dense_stack(x_concat)
+    elif callable(layers):
+        params = signature(layers).parameters
+        n_params = len(params)
+        if n_params != 2:
+            raise ValueError(
+                f"Detected `layers` as a callable that takes in {n_params} "
+                "arguments as input. But this function requires a callable that takes "
+                "in 2 input tensor as arguments."
+            )
+        output_features = layers(x1, x2)
+    else:
+        raise ValueError("`layers` must be a list or a callable.")
     return Model(x_pair, output_features, **kwargs)
 
 
@@ -165,6 +191,7 @@ def PermutationalModule(
     input_shape,
     n_inputs,
     layers_stack,
+    concat_axis=-1,
     encoder_pooling=maximum,
     last_layer_pooling=None,
     summary=True,
@@ -185,8 +212,12 @@ def PermutationalModule(
     # Arguments
         input_shape: Input shape of one individual input without batch dimension.
         n_inputs: How many inputs to setup PermutationalEncoder for
-        layers_stack: A list of layers list.
-            layers_stack[i] = A list of layers for pairwise model i
+        layers_stack: A list of layers list or callables.
+            layers_stack[i] = a list of layers or a callable that takes 2 input
+            tensors and return an output tensor for pairwise model i.
+            Read documentation of PairwiseModel for more information.
+        concat_axis: Concatenation axis of the 2 input tensors inside PairwiseModel
+            Will only be used for layers inside `layers_stack` that are not callable.
         encoder_pooling: The pooling function for permutational encoder to use.
             The default is maximum as it shows the best result in the paper.
         last_layer_pooling: The pooling function for the last permutational layer.
