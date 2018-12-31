@@ -193,6 +193,7 @@ def PermutationalModule(
     layers_stack,
     concat_axis=-1,
     encoder_pooling=maximum,
+    encode_identical=True,
     last_layer_pooling=None,
     summary=True,
     name="permutational_module",
@@ -220,6 +221,9 @@ def PermutationalModule(
             Will only be used for layers inside `layers_stack` that are not callable.
         encoder_pooling: The pooling function for permutational encoder to use.
             The default is maximum as it shows the best result in the paper.
+        encode_identical: Whether to run PairwiseModel on duplicate pairs of inputs.
+            E.g. Run PairwiseModel on input x1 and x1, x2 and x2, etc.
+            See PermutationalEncoder doc for more details.
         last_layer_pooling: The pooling function for the last permutational layer.
             We only allow last layer pooling because applying pooling to
             intermediate permutational layers do not make sense as it collapses
@@ -233,7 +237,7 @@ def PermutationalModule(
     # Example
         Create a module with 2 permutational layers, the last layer is pooled using max function.
         Each permutational layer consists of a pairwise model that has 2 Dense layers.
-        >>> PermutationalModule(receiver_input_shape, 3, [repeat_layers(Dense, [2, 4]), repeat_layers(Dense, [8, 16])], last_layer_pooling=maximum)
+        >>> PermutationalModule((4,), 3, [repeat_layers(Dense, [2, 4]), repeat_layers(Dense, [8, 16])], last_layer_pooling=maximum)
         permutational_module
         __________________________________________________________________________________________________
         Layer (type)                    Output Shape         Param #     Connected to                     
@@ -271,6 +275,7 @@ def PermutationalModule(
                 PairwiseModel(input_shape, layers, name=f"pairwise_model_{i+1}"),
                 n_inputs,
                 pooling=encoder_pooling,
+                encode_identical=encode_identical,
                 name=f"permutational_encoder_{i+1}",
             ),
             pooling=pooling,
