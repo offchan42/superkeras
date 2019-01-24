@@ -1,4 +1,7 @@
 from keras.layers import Lambda
+from keras.engine.topology import Layer
+from keras import initializers
+from keras import constraints
 
 
 class LayerStack:
@@ -221,3 +224,104 @@ def call_layers(layers, tensor):
 def rename_tensor(tensor, name, **kwargs):
     """Create an identity Lambda layer and call it on `tensor`, mainly to rename it."""
     return Lambda(lambda x: x, name=name, **kwargs)(tensor)
+
+
+class Arithmetic(Layer):
+    """
+    Perform arithmetic operation like "+-*/" to the input using weight
+    
+    # Example
+
+    >>> model = Sequential([Arithmetic('*', initializer=np.array([2,10]), weight_shape=(2, 1), input_shape=(3,))])
+    >>> model.get_weights()
+    [array([[ 2.],
+            [10.]], dtype=float32)]
+    >>> model.predict(np.array([[1, 2, 3],
+                                [4, 5, 6]]))
+    array([[ 2.,  4.,  6.],
+           [40., 50., 60.]], dtype=float32)
+    """
+
+    allowed_operations = "+-*/"
+
+    def __init__(
+        self,
+        operation,
+        initializer=None,
+        weight_shape=None,
+        input_as_operand=False,
+        constraint=None,
+        trainable=True,
+        **kwargs,
+    ):
+        """
+        # Arguments
+            operation: Operation to perform between input and the weight.
+                It must be one of the allowed operations.
+                Check `Arithmetic.allowed_operations` to see what operations you can use.
+            initializer: Initializer of the weight.
+                Accepts string, instance of Initializer, and numerical values.
+                Set to None to use default initializer that performs identity function.
+                E.g., if the operation is '+' or '-', default initializer will be 'zeros'.
+                If the operation is '*' or '/', default initializer will be 'ones'.
+            weight_shape: Default shape is for a scalar number.
+                Shape will be inferred from initializer if it's numerical values.
+                If weight_shape is set, it will broadcast initializer to have shape
+                = weight_shape. If broadcasting fails, a ValueError will be raised.
+            input_as_operand: Whether to use the input as operand or operator of the operation to the weight.
+            trainable: Whether the weight is variable or fixed.
+        """
+        super(Arithmetic, self).__init__(trainable=trainable, **kwargs)
+        if not operation or operation not in self.allowed_operations:
+            raise ValueError(
+                f"Operation '{operation}' is not one of the allowed operations: '{self.allowed_operations}'"
+            )
+        self.operation = operation
+        self.weight_shape = weight_shape
+        if initializer is None:
+            initializer = "ones" if operation in "*/" else "zeros"
+        try:
+            self.initializer = initializers.get(initializer)
+        except ValueError:
+            initializer = tf.constant_initializer(initializer)
+            self.initializer = initializers.get(initializer)
+        self.input_as_operand = input_as_operand
+        self.constraint = constraints.get(constraint)
+        self.trainable = trainable
+
+    def build(self, input_shape):
+        # Create a trainable weight variable for this layer.
+        self.w = self.add_weight(
+            name="weight",
+            shape=self.weight_shape,
+            initializer=self.initializer,
+            constraint=self.constraint,
+            trainable=self.trainable,
+        )
+        super(Arithmetic, self).build(input_shape)  # Be sure to call this at the end
+
+    def call(self, x):
+        op = self.operation
+        a, b = x, self.w
+        if self.input_as_operand:
+            a, b = b, a
+        if op == "+":
+            return a + b
+        if op == "-":
+            return a - b
+        if op == "*":
+            return a * b
+        if op == "/":
+            return a / b
+
+    def get_config(self):
+        config = dict(
+            operation=self.operation,
+            weight_shape=self.weight_shape,
+            initializer=initializers.serialize(self.initializer),
+            input_as_operand=self.input_as_operand,
+            constraint=constraints.serialize(self.constraint),
+        )
+        base_config = super(Arithmetic, self).get_config()
+        config.update(base_config)
+        return config
