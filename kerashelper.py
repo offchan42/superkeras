@@ -2,6 +2,8 @@ from keras.layers import Lambda
 from keras.engine.topology import Layer
 from keras import initializers
 from keras import constraints
+from keras import backend as K
+import numpy as np
 
 
 class LayerStack:
@@ -325,3 +327,52 @@ class Arithmetic(Layer):
         base_config = super(Arithmetic, self).get_config()
         config.update(base_config)
         return config
+
+
+def reinitialize_weights(
+    layers, reinit_kernel=True, reinit_bias=True, initializer=None
+):
+    """
+    Re-initialize weights on a list of `layers` using their default initializers.
+    Or use other initializers like `ones` or `zeros`. 
+
+    # Example
+        Re-initialize on the entire model with default initializers
+        >>> reinitialize_weights(model.layers)
+
+        Re-initialize on one layer with zeros weights
+        >>> reinitialize_weights(model.layers[-1], initializer='zeros')
+
+        Check the weights after re-initialization
+        >>> model.get_weights()
+    """
+    # make layers as list if only one element is provided
+    if not isinstance(layers, (list, tuple)):
+        layers = [layers]
+
+    if initializer is None:
+        session = K.get_session()
+        for layer in layers:
+            if reinit_kernel and hasattr(layer, "kernel_initializer"):
+                layer.kernel.initializer.run(session=session)
+            if reinit_bias and hasattr(layer, "bias_initializer"):
+                layer.bias.initializer.run(session=session)
+    else:
+        for layer in layers:
+            w = layer.get_weights()
+            assert len(w) == 2
+            kernel, bias = w
+            if initializer in ("zero", "zeros"):
+                if reinit_kernel:
+                    kernel = np.zeros_like(kernel)
+                if reinit_bias:
+                    bias = np.zeros_like(bias)
+            elif initializer in ("one", "ones"):
+                if reinit_kernel:
+                    kernel = np.ones_like(kernel)
+                if reinit_bias:
+                    bias = np.ones_like(bias)
+            else:
+                raise ValueError("Unsupported `initializer` value.")
+            layer.set_weights([kernel, bias])
+
