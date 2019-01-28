@@ -394,6 +394,9 @@ def apply_residual_block(layers, x, activation=None, name=None):
     The high-level idea is that a residual block allows the network to do
     skip-connections, so that it can choose to skip some of the layers to reduce
     the depth when it makes sense to do so.
+    The idea is first introduced in the model called ResNet which allows you to
+    train a very deep network without suffering from degradation of accuracy
+    as the depth increases.
 
     # Arguments
         layers: Can be any callable that takes `x` as input and returns output with the
@@ -420,7 +423,7 @@ def apply_residual_block(layers, x, activation=None, name=None):
 
         Create a model with 1 normal conv layer, followed by 1 residual block
         with 2 conv layers (2 conv layers in a block is a typical setting in
-        ResidualNetwork).
+        a ResNet model).
         >>> x = Input(input_shape, name='x')
         >>> h = Conv1D(48, 3, activation='relu', padding='same')(x)
         >>> h = apply_residual_block([Conv1D(48, 3, padding='same', activation='relu'),
