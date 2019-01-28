@@ -1,4 +1,4 @@
-from keras.layers import Lambda
+from keras.layers import Lambda, add, Activation
 from keras.engine.topology import Layer
 from keras import initializers
 from keras import constraints
@@ -111,7 +111,8 @@ def call_layers(layers, tensor):
     To see what I mean, please see the example below.
     
     # Arguments
-        layers: A list of keras layers
+        layers: A list of keras layers. If it's not a list, it's assumed to be
+            one layer.
         tensor: Input tensor to feed to the first layer
     
     # Returns
@@ -218,6 +219,8 @@ def call_layers(layers, tensor):
         Now, you see the detail of each internal layer making up the encoder with one summary() call!
 
     """
+    if not isinstance(layers, (tuple, list)):
+        layers = [layers]
     for layer in layers:
         tensor = layer(tensor)
     return tensor
@@ -376,3 +379,63 @@ def reinitialize_weights(
                 raise ValueError("Unsupported `initializer` value.")
             layer.set_weights([kernel, bias])
 
+
+def apply_residual_block(layers, x, activation=None, name=None):
+    """Wrap a normal layer or many layers using residual mechanism.
+    Compute `call_layers(layers, x)` which will be considered the "residual" 
+    difference to add to the input `x`.
+
+    Use this function when you want to learn deep network but are afraid that the
+    network will suffer from too much depth. If too much depth is set, the
+    residual block will simply force the `layers` to learn zero function (a function
+    which always returns zero no matter what input it gets).
+    In practice, zero function is a lot easier to learn than an identity function.
+
+    The high-level idea is that a residual block allows the network to do
+    skip-connections, so that it can choose to skip some of the layers to reduce
+    the depth when it makes sense to do so.
+
+    # Arguments
+        layers: Can be any callable that takes `x` as input and returns output with the
+            same shape as `x`. It can be a keras Layer, a keras Model, a LayerStack,
+            or a list of layers.
+            Normally, this layer's activation function should not be set. If there are
+            multiple layers, only the last layer should not have activation function.
+        x: An input tensor to the `layers` list sequentially, must be a Keras
+            tensor with the same shape as `layers(x)`.
+        activation: The activation function to apply on the output `h`. If None, it is
+            going to be linear/identity function.
+        name: Name of the last layer of the block if provided
+
+    # Returns
+        A tensor `h = activation(x + layers(x))`, with `h` having the same shape as `x`
+    
+    # Example
+        Create a model with 1 normal conv layer, followed by 1 residual block
+        with 1 conv layer.
+        >>> x = Input(input_shape, name='x')
+        >>> h = Conv1D(48, 3, activation='relu', padding='same')(x)
+        >>> h = apply_residual_block(Conv1D(48, 3, padding='same'), h, activation='relu')
+        >>> model = Model(x, h)
+
+        Create a model with 1 normal conv layer, followed by 1 residual block
+        with 2 conv layers (2 conv layers in a block is a typical setting in
+        ResidualNetwork).
+        >>> x = Input(input_shape, name='x')
+        >>> h = Conv1D(48, 3, activation='relu', padding='same')(x)
+        >>> h = apply_residual_block([Conv1D(48, 3, padding='same', activation='relu'),
+                                      Conv1D(48, 3, padding='same')], h, activation='relu', name='block_1')
+        >>> model = Model(x, h)
+    """
+    residual = call_layers(layers, x)
+
+    # defining name argument
+    last_layer_params = {}
+    if name:
+        last_layer_params['name'] = name
+
+    add_params = last_layer_params if not activation else {}
+    h = add([x, residual], **add_params)
+    if activation:
+        h = Activation(activation, **last_layer_params)(h)
+    return h
