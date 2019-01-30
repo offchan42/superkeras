@@ -1,5 +1,5 @@
 import pytest
-from layers import *
+from .layers import *
 from keras.layers import Conv2D, Dense, Flatten, Input
 from keras.models import Sequential
 

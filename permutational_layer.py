@@ -49,7 +49,7 @@ As you add more permutational layers, the rate of input relationship grows expon
 # Structure of the concepts from concrete to abstract
     properties -> object -> pairwise model -> permutational encoder -> permutational layer -> permutational module
 """
-from layers import repeat_layers, LayerStack
+from .layers import repeat_layers, LayerStack
 from keras.layers import Input, concatenate, Dense, average, maximum
 from keras.models import Model
 from inspect import signature
