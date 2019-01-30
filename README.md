@@ -4,6 +4,8 @@ A bunch of Keras utilities and paper implementations written under TensorFlow ba
 
 ## How to use
 
+Download this repository and put it inside your project as a folder named `superkeras`.
+
 - `import superkeras.layers` to use use functions and classes in the file. Contains some useful functions like:
   - `repeat_layers` for creating multiple layers with the same type
   - `apply_residual_block` function for building ResNet-like architecture, making the network able to learn without
