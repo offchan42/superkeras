@@ -4,7 +4,8 @@ A bunch of Keras utilities and paper implementations written under TensorFlow ba
 ## How to use
 - `import kerashelper` to use use functions and classes in the file. Contains some useful functions like:
   - `repeat_layers` for creating multiple layers with the same type
-  - `apply_residual_block` function for building ResNet-like architecture, making the network able to learn when the depth is deep
+  - `apply_residual_block` function for building ResNet-like architecture, making the network able to learn without
+    degradation when the depth is very deep
   - `Arithmetic` layer for performing simple arithmetic operations on a trainable weight
   - and couple more utilities
 - `import permutational_layer` to use `PermutationalLayer` model implemented accurately following the paper [Permutation-equivariant neural networks applied to dynamics prediction](https://arxiv.org/pdf/1612.04530.pdf).
