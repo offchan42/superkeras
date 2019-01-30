@@ -1,4 +1,4 @@
-# keras_helpers
+# superkeras
 A bunch of Keras utilities and paper implementations written under TensorFlow backend
 
 ## How to use
