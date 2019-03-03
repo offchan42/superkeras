@@ -8,7 +8,9 @@ import numpy as np
 
 class LayerStack:
     """
-    Represent keras layers. Can be called on a tensor to get the output after passing through the stack.
+    Represent keras layers.
+
+    Can be called on a tensor to get the output after passing through the stack.
     The input must be list of layers or a keras Model instance.
     Sequential is also a keras Model, so you can pass it as the input.
 
@@ -43,6 +45,7 @@ class LayerStack:
 def repeat_layers(layer_class, *args, name=None, name_start_index=1, **kwargs):
     """
     Instantiate layer instances from `layer_class` and return them as a list.
+
     The number of layers is inferred from the length of the first positional argument.
     Each positional argument must be a list. Each element inside the list will be fed to one layer instance.
     All layer instance shares the same keyword arguments.
@@ -100,6 +103,7 @@ def repeat_layers(layer_class, *args, name=None, name_start_index=1, **kwargs):
 def call_layers(layers, tensor):
     """
     Pass `tensor` through each layer sequentially until it reaches the last layer.
+
     The output tensor of the last layer will be returned.
     
     This function is useful when you don't want to create a Sequential() model just to call the layers.
@@ -250,14 +254,14 @@ class Arithmetic(Layer):
     allowed_operations = "+-*/"
 
     def __init__(
-        self,
-        operation,
-        initializer=None,
-        weight_shape=None,
-        input_as_operand=False,
-        constraint=None,
-        trainable=True,
-        **kwargs,
+            self,
+            operation,
+            initializer=None,
+            weight_shape=None,
+            input_as_operand=False,
+            constraint=None,
+            trainable=True,
+            **kwargs,
     ):
         """
         # Arguments
@@ -333,11 +337,12 @@ class Arithmetic(Layer):
 
 
 def reinitialize_weights(
-    layers, reinit_kernel=True, reinit_bias=True, initializer=None
+        layers, reinit_kernel=True, reinit_bias=True, initializer=None
 ):
     """
     Re-initialize weights on a list of `layers` using their default initializers.
-    Or use other initializers like `ones` or `zeros`. 
+
+    Or use other initializers like `ones` or `zeros`.
 
     # Example
         Re-initialize on the entire model with default initializers
@@ -382,6 +387,7 @@ def reinitialize_weights(
 
 def apply_residual_block(layers, x, activation=None, name=None):
     """Wrap a normal layer or many layers using residual mechanism.
+
     Compute `call_layers(layers, x)` which will be considered the "residual" 
     difference to add to the input `x`.
 
@@ -442,3 +448,44 @@ def apply_residual_block(layers, x, activation=None, name=None):
     if activation:
         h = Activation(activation, **last_layer_params)(h)
     return h
+
+
+# region Quaternion
+def get_quat_magnitude(q, K, axis=-1, keepdims=False, force_positive=True):
+    """
+    Get quaternion magnitude. `q` must be of shape (..., 4, ...)
+    The axis of the quaternion is `axis`.
+    `K` could be `numpy` or `keras.backend`
+    """
+    sum_or_eps = K.sum(q ** 2, axis=axis, keepdims=keepdims)
+    if force_positive:
+        # FIXME: If you set K as numpy, the following line won't work. Make it compatible with numpy.
+        sum_or_eps = K.maximum(
+            sum_or_eps, K.epsilon()
+        )  # prevent negative input to sqrt
+    return K.sqrt(sum_or_eps)
+
+
+def normalize_quat(q, K):
+    """
+    Return normalized quaternion with magnitude 1.
+    `K` could be `numpy` or `keras.backend`
+    """
+    mag = get_quat_magnitude(q, K, keepdims=True)
+    return q / mag
+
+
+def normalize_quat_keras(q):
+    """Return normalized quaternion as a form of keras backend's tensor"""
+    return normalize_quat(q, K)
+
+
+def NormalizeQuaternion(name="normalize_quaternion", **kwargs):
+    """
+    Return a keras Lambda layer that normalize the quaternion with keras backend.
+    The shape of the input should be (..., 4). Shape of the output will be the same.
+    """
+    from keras.layers import Lambda
+
+    return Lambda(normalize_quat_keras, name=name, **kwargs)
+# endregion
