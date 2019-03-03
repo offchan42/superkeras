@@ -119,7 +119,7 @@ def get_quat_angle_tf(q1, q2):
 
 
 def mean_quat_angle(y_true, y_pred):
-    """Quaternion angle loss/metric for keras.
+    """Quaternion angle loss/metric for keras in radians.
     Make sure that the quaternion are normalized. Otherwise you might get nan."""
     return K.mean(get_quat_angle_tf(y_true, y_pred))
 
