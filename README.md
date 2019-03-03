@@ -14,6 +14,7 @@ Download this repository and put it inside your project as a folder named `super
   - `NormalizeQuaternion` layer for normalizing Quaternion data to have magnitude of 1.
   - and couple more utilities
 - `import superkeras.losses` to use loss functions (which can also be used as metrics)
+  - `r2_score` for computing r-squared error for regression problem.
   - `mean_euclidean_distance` or `mean_euclidean_distance_squared` for computing
     distance between 2 positions.
   - `mean_quat_distance`, `mean_quat_angle`, `mean_quat_angle_deg`, and
