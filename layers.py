@@ -458,11 +458,13 @@ def get_quat_magnitude(q, K, axis=-1, keepdims=False, force_positive=True):
     `K` could be `numpy` or `keras.backend`
     """
     sum_or_eps = K.sum(q ** 2, axis=axis, keepdims=keepdims)
+    # prevent negative input to sqrt
     if force_positive:
-        # FIXME: If you set K as numpy, the following line won't work. Make it compatible with numpy.
-        sum_or_eps = K.maximum(
-            sum_or_eps, K.epsilon()
-        )  # prevent negative input to sqrt
+        try:
+            sum_or_eps = K.maximum(sum_or_eps, K.epsilon())
+        except AttributeError:
+            # assume that K is numpy
+            sum_or_eps = np.clip(sum_or_eps, np.finfo(sum_or_eps.dtype).eps, None)
     return K.sqrt(sum_or_eps)
 
 
