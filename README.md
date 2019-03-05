@@ -33,3 +33,24 @@ Download this repository and put it inside your project as a folder named `super
   you can use `PermutationalModule`.
 
 - Run `pytest` to run test files that have name starting with `test_`.
+
+## Troubleshooting
+- `ValueError: Unknown metric function:mean_quat_angle_deg`:
+
+  This error is caused by not providing the function to the model loader.
+  It usually happens when you save the Keras model to disk and trying to load it
+  using `keras.models.load_model` function.
+  
+  To fix this, you need to provide `custom_objects` dictionary with string key
+  pointing to the function reference.
+  Example:
+  ```python
+  from superkeras.losses import mean_quat_angle_deg
+  from keras.models import load_model
+  model = load_model('model_path.h5', custom_objects=dict(mean_quat_angle_deg=mean_quat_angle_deg))
+  ```
+  
+  There are many possible metric functions that this error can indicate.
+  Most of the functions live in `losses` and `layers` module.
+  So you must provide all of the unknown functions into `custom_objects`.
+
