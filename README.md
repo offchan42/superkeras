@@ -33,6 +33,8 @@ Download this repository and put it inside your project as a folder named `super
   you can use `PermutationalModule`.
 
 - Run `pytest` to run test files that have name starting with `test_`.
+- For any functions that are not mentioned here but exist in the file, you can use them.
+  All of the functions that are supposed to be usable usually have documentation written very good on them. So check that!
 
 ## Troubleshooting
 - `ValueError: Unknown metric function:mean_quat_angle_deg`:
