@@ -6,6 +6,8 @@ Link to the paper: https://arxiv.org/pdf/1612.04530.pdf
 Accurate Implementation using Keras Functional API. Deep learning for human.
 Supports multiple layers.
 
+To get started right away, please check the bottom section and run this file.
+
 In order to understand permutational layer, let us first understand the simplest
 idea of incorporating permutation invariance property into neural networks first.
 Suppose you have 3 inputs with permutation invariance property.
