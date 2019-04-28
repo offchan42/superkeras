@@ -28,6 +28,8 @@ Download this repository and put it inside your project as a folder named `super
   can swap/permute/re-order them and the prediction should stay the same,
   preserving **Permutation Invariance** property. You can think of this as
   modeling a `Set` data structure for the inputs of neural networks.
+- `import superkeras.utils` to use some helper functions not related to `keras` e.g. `make_xy_3d` for converting
+  a time-series `DataFrame` into a 3D data for ConvNets or LSTM.
   
   To use it without the need to understand too much details,
   you can use `PermutationalModule`.
@@ -37,15 +39,17 @@ Download this repository and put it inside your project as a folder named `super
   All of the functions that are supposed to be usable usually have documentation written very good on them. So check that!
 
 ## Troubleshooting
+
 - `ValueError: Unknown metric function:mean_quat_angle_deg`:
 
   This error is caused by not providing the function to the model loader.
   It usually happens when you save the Keras model to disk and trying to load it
   using `keras.models.load_model` function.
-  
+ 
   To fix this, you need to provide `custom_objects` dictionary with string key
   pointing to the function reference.
   Example:
+
   ```python
   from superkeras.losses import mean_quat_angle_deg
   from keras.models import load_model
