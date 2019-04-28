@@ -28,12 +28,12 @@ Download this repository and put it inside your project as a folder named `super
   can swap/permute/re-order them and the prediction should stay the same,
   preserving **Permutation Invariance** property. You can think of this as
   modeling a `Set` data structure for the inputs of neural networks.
+
+  To use it without the need to understand too much details,
+  you can use `PermutationalModule`.
 - `import superkeras.utils` to use some helper functions not related to `keras` e.g. `make_xy_3d` for converting
   a time-series `DataFrame` into a 3D data for ConvNets or LSTM.
   
-  To use it without the need to understand too much details,
-  you can use `PermutationalModule`.
-
 - Run `pytest` to run test files that have name starting with `test_`.
 - For any functions that are not mentioned here but exist in the file, you can use them.
   All of the functions that are supposed to be usable usually have documentation written very good on them. So check that!
@@ -45,7 +45,7 @@ Download this repository and put it inside your project as a folder named `super
   This error is caused by not providing the function to the model loader.
   It usually happens when you save the Keras model to disk and trying to load it
   using `keras.models.load_model` function.
- 
+
   To fix this, you need to provide `custom_objects` dictionary with string key
   pointing to the function reference.
   Example:
@@ -59,4 +59,3 @@ Download this repository and put it inside your project as a folder named `super
   There are many possible metric functions that this error can indicate.
   Most of the functions live in `losses` and `layers` module.
   So you must provide all of the unknown functions into `custom_objects`.
-
