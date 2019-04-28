@@ -37,7 +37,13 @@ def load_multi_csv(filenames, concat=True, discard_empty=False, verbose=True):
 
 
 def make_xy_3d(
-    big_df, numsteps, skip_size=1, categorical=True, add_time_y=False, y_dim=1
+    big_df,
+    numsteps,
+    skip_size=1,
+    categorical=True,
+    add_time_y=False,
+    y_dim=1,
+    num_classes=None,
 ):
     """
     Extract `X` and y` chunks from `big_df` assuming `big_df` is a time-series
@@ -53,7 +59,10 @@ def make_xy_3d(
 
     If y_dim=0, return None in the place of y.
 
-    If `add_time_y` is True, an extra time dimension will be added."""
+    If `add_time_y` is True, an extra time dimension will be added.
+
+    `num_classes` should be provided when the data is too few that the amount
+    of classes cannot be inferred for `to_categorical` function."""
     X, y = [], []
     if isinstance(big_df, pd.DataFrame):
         big_df = big_df.values
@@ -73,7 +82,9 @@ def make_xy_3d(
         return np.concatenate(X), None
     return (
         np.concatenate(X),
-        to_categorical(np.array(y)) if categorical else np.array(y),
+        to_categorical(np.array(y), num_classes=num_classes)
+        if categorical
+        else np.array(y),
     )
 
 
