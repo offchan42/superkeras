@@ -10,6 +10,8 @@ Download this repository and put it inside your project as a folder named `super
   - `repeat_layers` for creating multiple layers with the same type
   - `apply_residual_block` function for building ResNet-like architecture, making the network able to learn without
     degradation when the depth is very deep
+  - `BlurPool` layer for consistent ConvNet output when the image is shifted by a few pixels, also increase accuracy.
+  See https://github.com/adobe/antialiased-cnns
   - `Arithmetic` layer for performing simple arithmetic operations on a trainable weight
   - `NormalizeQuaternion` layer for normalizing Quaternion data to have magnitude of 1.
   - and couple more utilities
