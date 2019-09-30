@@ -8,26 +8,34 @@ import numpy as np
 
 class BlurPool(Layer):
     """
-    https://arxiv.org/abs/1904.11486 https://github.com/adobe/antialiased-cnns
-    Code copied from https://github.com/adobe/antialiased-cnns/issues/10
+    Use this layer after Conv2D layer.
+    Improve accuracy and make the network output consistent when the input image is shifted.
+    Instead of Using Conv2D(32, 3, strides=2, activation='relu'),
+    use Conv2D(32, 3, strides=1, activation='relu')
+    followed by BlurPool(3, strides=2) and you will see improvement!
+
+    # See also
+        https://arxiv.org/abs/1904.11486
+        https://github.com/adobe/antialiased-cnns
+        https://github.com/adobe/antialiased-cnns/issues/10
     """
-    def __init__(self, filt_size=5, stride=2, **kwargs):
-        self.strides = (stride,stride)
-        self.filt_size = filt_size
-        self.padding = ( (int(1.*(filt_size-1)/2), int(np.ceil(1.*(filt_size-1)/2)) ), (int(1.*(filt_size-1)/2), int(np.ceil(1.*(filt_size-1)/2)) ) )
-        if(self.filt_size==1):
-            self.a = np.array([1.,])
-        elif(self.filt_size==2):
+    def __init__(self, kernel_size, strides=2, **kwargs):
+        self.strides = (strides,strides)
+        self.kernel_size = kernel_size
+        self.padding = ( (int(1.*(kernel_size-1)/2), int(np.ceil(1.*(kernel_size-1)/2)) ), (int(1.*(kernel_size-1)/2), int(np.ceil(1.*(kernel_size-1)/2)) ) )
+        if(self.kernel_size==1):
+            self.a = np.array([1.])
+        elif(self.kernel_size==2):
             self.a = np.array([1., 1.])
-        elif(self.filt_size==3):
+        elif(self.kernel_size==3):
             self.a = np.array([1., 2., 1.])
-        elif(self.filt_size==4):
+        elif(self.kernel_size==4):
             self.a = np.array([1., 3., 3., 1.])
-        elif(self.filt_size==5):
+        elif(self.kernel_size==5):
             self.a = np.array([1., 4., 6., 4., 1.])
-        elif(self.filt_size==6):
+        elif(self.kernel_size==6):
             self.a = np.array([1., 5., 10., 10., 5., 1.])
-        elif(self.filt_size==7):
+        elif(self.kernel_size==7):
             self.a = np.array([1., 6., 15., 20., 15., 6., 1.])
         super(BlurPool, self).__init__(**kwargs)
 
