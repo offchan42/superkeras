@@ -1,9 +1,52 @@
-from keras.layers import Lambda, add, Activation
-from keras.engine.topology import Layer
-from keras import initializers
-from keras import constraints
-from keras import backend as K
+from tensorflow.keras.layers import Lambda, add, Activation, Layer
+from tensorflow.keras import initializers
+from tensorflow.keras import constraints
+from tensorflow.keras import backend as K
+import tensorflow as tf
 import numpy as np
+
+
+class BlurPool(Layer):
+    """
+    https://arxiv.org/abs/1904.11486 https://github.com/adobe/antialiased-cnns
+    Code copied from https://github.com/adobe/antialiased-cnns/issues/10
+    """
+    def __init__(self, filt_size=5, stride=2, **kwargs):
+        self.strides = (stride,stride)
+        self.filt_size = filt_size
+        self.padding = ( (int(1.*(filt_size-1)/2), int(np.ceil(1.*(filt_size-1)/2)) ), (int(1.*(filt_size-1)/2), int(np.ceil(1.*(filt_size-1)/2)) ) )
+        if(self.filt_size==1):
+            self.a = np.array([1.,])
+        elif(self.filt_size==2):
+            self.a = np.array([1., 1.])
+        elif(self.filt_size==3):
+            self.a = np.array([1., 2., 1.])
+        elif(self.filt_size==4):
+            self.a = np.array([1., 3., 3., 1.])
+        elif(self.filt_size==5):
+            self.a = np.array([1., 4., 6., 4., 1.])
+        elif(self.filt_size==6):
+            self.a = np.array([1., 5., 10., 10., 5., 1.])
+        elif(self.filt_size==7):
+            self.a = np.array([1., 6., 15., 20., 15., 6., 1.])
+        super(BlurPool, self).__init__(**kwargs)
+
+    def compute_output_shape(self, input_shape):
+        height = input_shape[1] // self.strides[0]
+        width = input_shape[2] // self.strides[1]
+        channels = input_shape[3]
+        return (input_shape[0], height, width, channels)
+
+    def call(self, x):
+        k = self.a
+        k = k[:,None]*k[None,:]
+        k = k / np.sum(k)
+        k = np.tile (k[:,:,None,None], (1,1,K.int_shape(x)[-1],1))
+        k = K.constant (k, dtype=K.floatx())
+
+        x = K.spatial_2d_padding(x, padding=self.padding)
+        x = tf.nn.depthwise_conv2d(x, k, strides=[1, self.strides[0], self.strides[1], 1], padding='VALID')
+        return x
 
 
 class LayerStack:

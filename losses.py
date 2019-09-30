@@ -1,5 +1,5 @@
 import tensorflow as tf
-from keras import backend as K
+from tensorflow.keras import backend as K
 
 
 def r2_score(y_true, y_pred):
