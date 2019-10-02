@@ -51,10 +51,12 @@ As you add more permutational layers, the rate of input relationship grows expon
 # Structure of the concepts from concrete to abstract
     properties -> object -> pairwise model -> permutational encoder -> permutational layer -> permutational module
 """
-from .layers import repeat_layers, LayerStack
-from tensorflow.keras.layers import Input, concatenate, Dense, average, maximum
-from tensorflow.keras.models import Model
 from inspect import signature
+
+from tensorflow.keras.layers import Dense, Input, average, concatenate, maximum
+from tensorflow.keras.models import Model
+
+from .layers import LayerStack, repeat_layers
 
 
 def move_item(a_list, from_idx, to_idx):

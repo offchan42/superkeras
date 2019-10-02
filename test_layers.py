@@ -1,7 +1,9 @@
-import pytest
-from .layers import *
 from tensorflow.keras.layers import Conv2D, Dense, Flatten, Input
 from tensorflow.keras.models import Sequential
+
+import pytest
+
+from .layers import *
 
 
 def test_repeat_layers():

@@ -1,9 +1,8 @@
-from tensorflow.keras.layers import Lambda, add, Activation, Layer
-from tensorflow.keras import initializers
-from tensorflow.keras import constraints
-from tensorflow.keras import backend as K
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
+from tensorflow.keras import backend as K
+from tensorflow.keras import constraints, initializers
+from tensorflow.keras.layers import Activation, Lambda, Layer, add
 
 
 class BlurPool(Layer):
@@ -19,24 +18,34 @@ class BlurPool(Layer):
         https://github.com/adobe/antialiased-cnns
         https://github.com/adobe/antialiased-cnns/issues/10
     """
+
     def __init__(self, kernel_size, strides=2, **kwargs):
-        self.strides = (strides,strides)
+        self.strides = (strides, strides)
         self.kernel_size = kernel_size
-        self.padding = ( (int(1.*(kernel_size-1)/2), int(np.ceil(1.*(kernel_size-1)/2)) ), (int(1.*(kernel_size-1)/2), int(np.ceil(1.*(kernel_size-1)/2)) ) )
-        if(self.kernel_size==1):
-            self.a = np.array([1.])
-        elif(self.kernel_size==2):
-            self.a = np.array([1., 1.])
-        elif(self.kernel_size==3):
-            self.a = np.array([1., 2., 1.])
-        elif(self.kernel_size==4):
-            self.a = np.array([1., 3., 3., 1.])
-        elif(self.kernel_size==5):
-            self.a = np.array([1., 4., 6., 4., 1.])
-        elif(self.kernel_size==6):
-            self.a = np.array([1., 5., 10., 10., 5., 1.])
-        elif(self.kernel_size==7):
-            self.a = np.array([1., 6., 15., 20., 15., 6., 1.])
+        self.padding = (
+            (
+                int(1.0 * (kernel_size - 1) / 2),
+                int(np.ceil(1.0 * (kernel_size - 1) / 2)),
+            ),
+            (
+                int(1.0 * (kernel_size - 1) / 2),
+                int(np.ceil(1.0 * (kernel_size - 1) / 2)),
+            ),
+        )
+        if self.kernel_size == 1:
+            self.a = np.array([1.0])
+        elif self.kernel_size == 2:
+            self.a = np.array([1.0, 1.0])
+        elif self.kernel_size == 3:
+            self.a = np.array([1.0, 2.0, 1.0])
+        elif self.kernel_size == 4:
+            self.a = np.array([1.0, 3.0, 3.0, 1.0])
+        elif self.kernel_size == 5:
+            self.a = np.array([1.0, 4.0, 6.0, 4.0, 1.0])
+        elif self.kernel_size == 6:
+            self.a = np.array([1.0, 5.0, 10.0, 10.0, 5.0, 1.0])
+        elif self.kernel_size == 7:
+            self.a = np.array([1.0, 6.0, 15.0, 20.0, 15.0, 6.0, 1.0])
         super(BlurPool, self).__init__(**kwargs)
 
     def compute_output_shape(self, input_shape):
@@ -47,13 +56,15 @@ class BlurPool(Layer):
 
     def call(self, x):
         k = self.a
-        k = k[:,None]*k[None,:]
+        k = k[:, None] * k[None, :]
         k = k / np.sum(k)
-        k = np.tile (k[:,:,None,None], (1,1,K.int_shape(x)[-1],1))
-        k = K.constant (k, dtype=K.floatx())
+        k = np.tile(k[:, :, None, None], (1, 1, K.int_shape(x)[-1], 1))
+        k = K.constant(k, dtype=K.floatx())
 
         x = K.spatial_2d_padding(x, padding=self.padding)
-        x = tf.nn.depthwise_conv2d(x, k, strides=[1, self.strides[0], self.strides[1], 1], padding='VALID')
+        x = tf.nn.depthwise_conv2d(
+            x, k, strides=[1, self.strides[0], self.strides[1], 1], padding="VALID"
+        )
         return x
 
 
@@ -305,14 +316,14 @@ class Arithmetic(Layer):
     allowed_operations = "+-*/"
 
     def __init__(
-            self,
-            operation,
-            initializer=None,
-            weight_shape=None,
-            input_as_operand=False,
-            constraint=None,
-            trainable=True,
-            **kwargs,
+        self,
+        operation,
+        initializer=None,
+        weight_shape=None,
+        input_as_operand=False,
+        constraint=None,
+        trainable=True,
+        **kwargs,
     ):
         """
         # Arguments
@@ -388,7 +399,7 @@ class Arithmetic(Layer):
 
 
 def reinitialize_weights(
-        layers, reinit_kernel=True, reinit_bias=True, initializer=None
+    layers, reinit_kernel=True, reinit_bias=True, initializer=None
 ):
     """
     Re-initialize weights on a list of `layers` using their default initializers.
@@ -492,7 +503,7 @@ def apply_residual_block(layers, x, activation=None, name=None):
     # defining name argument
     last_layer_params = {}
     if name:
-        last_layer_params['name'] = name
+        last_layer_params["name"] = name
 
     add_params = last_layer_params if not activation else {}
     h = add([x, residual], **add_params)
@@ -541,4 +552,6 @@ def NormalizeQuaternion(name="normalize_quaternion", **kwargs):
     from keras.layers import Lambda
 
     return Lambda(normalize_quat_keras, name=name, **kwargs)
+
+
 # endregion

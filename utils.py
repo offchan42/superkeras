@@ -1,7 +1,8 @@
+import json
+
 import numpy as np
 import pandas as pd
 from tensorflow.keras.utils import to_categorical
-import json
 
 
 def load_multi_csv(filenames, concat=True, discard_empty=False, verbose=True):

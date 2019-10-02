@@ -11,7 +11,7 @@ def r2_score(y_true, y_pred):
 
 # region Euclidean Distance
 def euclidean_distance_squared(
-        y_true, y_pred, axis=-1, keepdims=False, force_positive=True
+    y_true, y_pred, axis=-1, keepdims=False, force_positive=True
 ):
     """Compute the distance squared along the specified axis.
     # Example
@@ -38,7 +38,7 @@ def euclidean_distance(y_true, y_pred, axis=-1, keepdims=False, force_positive=T
 
 
 def mean_euclidean_distance_squared(
-        y_true, y_pred, axis=-1, keepdims=False, force_positive=True
+    y_true, y_pred, axis=-1, keepdims=False, force_positive=True
 ):
     return K.mean(
         euclidean_distance_squared(
@@ -63,7 +63,7 @@ class mean_euclidean_distance_squared_metric:
 
 
 def mean_euclidean_distance(
-        y_true, y_pred, axis=-1, keepdims=False, force_positive=True
+    y_true, y_pred, axis=-1, keepdims=False, force_positive=True
 ):
     return K.mean(
         euclidean_distance(
@@ -136,4 +136,6 @@ def mean_sqr_quat_angle(y_true, y_pred):
     """Get mean square quaternion angle.
     Make sure that the quaternion are normalized."""
     return K.mean(get_quat_angle_tf(y_true, y_pred) ** 2)
+
+
 # endregion
