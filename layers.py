@@ -70,11 +70,11 @@ class BlurPool(Layer):
 
 class LayerStack:
     """
-    Represent keras layers.
+    Represent sequential keras layers. Used in place of Sequential for less
+    prediction latency when attempting to connect multiple Sequential together.
 
-    Can be called on a tensor to get the output after passing through the stack.
-    The input must be list of layers or a keras Model instance.
-    Sequential is also a keras Model, so you can pass it as the input.
+    An initialized LayerStack should be called with a tensor argument and get a tensor
+    output similar to Sequential.
 
     # Example
         >>> stack = LayerStack([Dense(10), Dense(20)])
@@ -87,18 +87,30 @@ class LayerStack:
         <tf.Tensor 'hidden_5_7/BiasAdd:0' shape=(?, 50) dtype=float32>
     """
 
-    def __init__(self, keras_layers):
+    def __init__(self, keras_layers, name=None):
+        """
+        # Args
+            keras_layers: A list of layers or a keras Model instance
+            name: The default name that will be used for the output tensor
+        """
         try:
+            # if the input is a keras Model instance then this would work
             keras_layers = keras_layers.layers
-        except:
+            self.name = keras_layers.name
+        except Exception:
             pass
         if not isinstance(keras_layers, list):
             raise ValueError("`keras_layers` must be a list or a keras Model instance.")
         self.layers = keras_layers
+        self.name = name
 
     def __call__(self, tensors, name=None):
-        """Call and return the tensor with given name"""
+        """Call and return the tensor with the given name.
+        If given name is None, the default name will be used (if it exists)
+        """
         out = call_layers(self.layers, tensors)
+        if name is None:
+            name = self.name
         if name:
             out = rename_tensor(out, name)
         return out
