@@ -7,11 +7,19 @@ from tensorflow.keras.layers import Activation, Lambda, Layer, add
 
 class BlurPool(Layer):
     """
-    Use this layer after Conv2D layer.
-    Improve accuracy and make the network output consistent when the input image is shifted.
-    Instead of Using Conv2D(32, 3, strides=2, activation='relu'),
-    use Conv2D(32, 3, strides=1, activation='relu')
-    followed by BlurPool(3, strides=2) and you will see improvement!
+    BlurPool allows you to antialias your model architecture, making convolutional
+    networks shift-invariant again!
+    The methodology is simple. First, apply convolution layer with strides=1,
+    then use this BlurPool layer to do antialised downsampling.
+
+    You can replace AveragePooling or MaxPooling with the following guideline.
+    1. Max Pooling: MaxPool(strides=2) => [MaxPool(strides=1), BlurPool(strides=2)]
+    2. Strided-Convolution: Conv(strides=2, 'relu') => [Conv(strides=2, 'relu'), BlurPool(strides=2)]
+    3. Average Pooling: AvgPool(strides=2) => BlurPool(strides=2)
+
+    # Benefits
+        The network's accuracy will increase and the prediction probability won't
+        fluctuate much when the object in the image is slightly moved.
 
     # See also
         https://arxiv.org/abs/1904.11486
