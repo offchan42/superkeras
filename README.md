@@ -22,6 +22,7 @@ Download this repository and put it inside your project as a folder named `super
   - `mean_quat_distance`, `mean_quat_angle`, `mean_quat_angle_deg`, and
     `mean_sqr_quat_angle` are for computing Quaternion difference, must be used
     with normalized quaternion (output of `NormalizeQuaternion` layer).
+- `import superkeras.datautil` to use utilities made for `tf.data` module
 - `import superkeras.permutational_layer` to use `PermutationalLayer`
   model implemented accurately following the paper [Permutation-equivariant
   neural networks applied to dynamics
