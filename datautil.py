@@ -7,6 +7,7 @@ from collections import namedtuple
 class DatasetKit(namedtuple('DatasetKit', ['name', 'ds', 'n', 'dsb', 'batch_size', 'steps', 'shuffle'])):
     """
     DatasetKit is supposed to contain [train data XOR test data], not both at the same time.
+    You can pass `dsb` to kr.Model.fit() along with `steps`.
     
     # Attributes
         name: name of the dataset, used when naming cache files
