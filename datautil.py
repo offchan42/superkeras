@@ -22,15 +22,16 @@ class DatasetKit(namedtuple('DatasetKit', ['name', 'ds', 'n', 'dsb', 'batch_size
     pass
 
 
-def create_image_loader(channels=None, prep_func=None, width=None, height=None,
+def create_image_loader(channels=0, prep_func=None, width=None, height=None,
                     resize_method=tf.image.ResizeMethod.AREA):
     """Create a function that receives an image file path and returns a 3D tf.Tensor
     (height, width, channels) representing an image.
     The output tensor will consist of values between 0 and 1.
     The image will be resized if `width` and `height` are provided.
+    The image must have a JPEG or PNG format.
 
     # Args
-        channels: Number of color channels, e.g. 0, 1, or 3
+        channels: Number of color channels, e.g. 0 (automatically detected), 1, or 3
         prep_func: Preprocessing procedure to perform to the image before it is resized.
             The input to the function will be a 3D tf.Tensor with dtype=uint8.
             (because uint8 work flawlessly with OpenCV preprocessing functions)
@@ -52,10 +53,16 @@ def create_image_loader(channels=None, prep_func=None, width=None, height=None,
     def load_and_preprocess_image(path):
         """Load image from `path` and return as 3D tf.Tensor"""
         image = tf.io.read_file(path)
-        image = tf.image.decode_image(image, channels=channels, dtype=tf.uint8)
+        # cannot use decode_image() as it removes shape information
+        image = tf.cond(
+            tf.image.is_jpeg(image),
+            lambda: tf.image.decode_jpeg(image, channels=channels),
+            lambda: tf.image.decode_png(image, channels=channels, dtype=tf.uint8))
         if prep_func is not None:
+            im_shape = image.shape
             [image, ] = tf.py_function(prep_func, [image], [tf.uint8])
-        image = tf.dtypes.cast(image, tf.float32) / 255.0
+            image.set_shape(im_shape)  # if we don't do this we will see unknown shape
+        image = tf.image.convert_image_dtype(image, tf.float32)
         if hw_count == 2:
             image = tf.image.resize(image, (height, width))
         return image  # return 3D tensor
