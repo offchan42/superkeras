@@ -6,7 +6,17 @@ from collections import namedtuple
 
 class DatasetKit(
     namedtuple(
-        "DatasetKit", ["cache_path", "ds", "n", "dsb", "batch_size", "steps", "shuffle"]
+        "DatasetKit",
+        [
+            "cache_path",
+            "ds",
+            "n",
+            "dsb",
+            "batch_size",
+            "steps",
+            "steps_float",
+            "shuffle",
+        ],
     )
 ):
     """
@@ -19,7 +29,9 @@ class DatasetKit(
         n: The amount of iterations to complete one epoch of `ds`
         dsb: The dataset content (batched). When iterated, give a batch of samples at a time.
         batch_size: The batch size for `dsb`
-        steps: The amount of iterations to complete one epoch of `dsb`.
+        steps: The estimated amount of iterations to complete one epoch of `dsb`.
+        steps_float: The exact amount of iterations to complete one epoch of `dsb`.
+            If the value is close to `steps` it means precise evaluation will happen.
         shuffle: Whether the dataset was shuffled. Should be set to True for training set.
             But can be False for test set.
     """
@@ -106,14 +118,7 @@ def create_xy_dataset(xs, ys, xmap=None):
     return zipped_ds, len(xs)
 
 
-def create_xy_dataset_kit(
-    xy_dataset,
-    n_samples,
-    shuffle,
-    batch_size,
-    cache_path=None,
-    drop_remainder=True,
-):
+def create_xy_dataset_kit(xy_dataset, n_samples, cache_path, shuffle, batch_size):
     """
     Create an (x,y) DatasetKit instance (you can check its doc for how to use it)
     representing a training set or test set, but not both at the same time.
@@ -129,13 +134,12 @@ def create_xy_dataset_kit(
     # Args
         xy_dataset: An instance of tf.data.Dataset created from `create_xy_dataset()`
         n_samples: Number of samples returned from `create_xy_dataset()`
+        cache_path: Data cache file path e.g. "data/train". Can be None to not cache.
         shuffle: Whether to shuffle the dataset (Suggestion: shuffle for train, but not
             for test)
         batch_size: Batch size for batched dataset (used when training and inference)
-        cache_path: Data cache file path e.g. "data/train". Can be None to not cache.
-        drop_remainder: The last batch in the dataset will be smaller than other
-            batches if set to True. (Leave this to True always, if you want precise
-            accuracy evaluation)
+            Choose `batch_size` that divides (or almost divides) `n_samples`
+            will provide better evaluation measurement.
 
     # Troubleshooting
         If you see an error like `ValueError: Tensor's shape (x,) is not compatible
@@ -148,7 +152,10 @@ def create_xy_dataset_kit(
     n = n_samples
     if shuffle:
         dsb = dsb.shuffle(n)
-    dsb = (
-        dsb.repeat().batch(batch_size, drop_remainder=drop_remainder).prefetch(AUTOTUNE)
-    )
-    return DatasetKit(cache_path, ds, n, dsb, batch_size, n // batch_size, shuffle)
+    # keras requires that both training and validation set are repeating
+    dsb = dsb.repeat().batch(batch_size).prefetch(AUTOTUNE)
+    steps_f = n / batch_size
+    steps = int(round(steps_f))
+    if steps == 0:
+        raise ValueError("steps == 0, please reduce `batch_size`!")
+    return DatasetKit(cache_path, ds, n, dsb, batch_size, steps, steps_f, shuffle)
