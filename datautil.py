@@ -22,7 +22,7 @@ class DatasetKit(namedtuple('DatasetKit', ['name', 'ds', 'n', 'dsb', 'batch_size
     pass
 
 
-def create_image_loader(channels=None, width=None, height=None,
+def create_image_loader(channels=None, prep_func=None, width=None, height=None,
                     resize_method=tf.image.ResizeMethod.AREA):
     """Create a function that receives an image file path and returns a 3D tf.Tensor
     (height, width, channels) representing an image.
@@ -31,14 +31,25 @@ def create_image_loader(channels=None, width=None, height=None,
     
     # Args
         channels: Number of color channels, e.g. 0, 1, or 3
+        prep_func: Preprocessing procedure to perform to the image before it is resized.
+            The input to the function will be a 3D tf.Tensor with dtype=uint8.
+            (because uint8 work flawlessly with OpenCV preprocessing functions)
+            You must return the preprocessed uint8 image back to the caller.
+            You need to convert tf.Tensor to a numpy array using `.numpy()`
+            inside the function. (Eager execution must be enabled)
         width: Target width of the image (after resizing)
         height: Target height of the image (after resizing)
         resize_method: The interpolation method when resizing
             (default=tf.image.ResizeMethod.AREA)
     """
     def load_and_preprocess_image(path):
+        """Load image from `path` and return as 3D tf.Tensor"""
         image = tf.io.read_file(path)
-        image = tf.image.decode_image(image, channels=channels, dtype=tf.float32)
+        image = tf.image.decode_image(image, channels=channels, dtype=tf.uint8)
+        
+        if prep_func is not None:
+            [image,] = tf.py_function(prep_func, [image], [tf.uint8])
+        image = tf.dtypes.cast(image, tf.float32) / 255.0
 
         # if width and height are provided, we will resize the image
         hw_count = 0
