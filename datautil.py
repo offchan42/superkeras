@@ -107,21 +107,35 @@ def create_xy_dataset(xs, ys, xmap=None):
 
 
 def create_xy_dataset_kit(
-    xy_dataset, n_samples, shuffle, batch_size, cache_path=None, drop_remainder=True
+    xy_dataset,
+    n_samples,
+    shuffle,
+    batch_size,
+    cache_path=None,
+    drop_remainder=True,
 ):
     """
     Create an (x,y) DatasetKit instance (you can check its doc for how to use it)
     representing a training set or test set, but not both at the same time.
 
+    # Processing steps
+        1. cache ds (maybe)
+        2. dsb = ds
+        3. shuffle dsb (maybe)
+        4. repeat dsb
+        5. batch dsb
+        6. prefetch dsb
+
     # Args
         xy_dataset: An instance of tf.data.Dataset created from `create_xy_dataset()`
         n_samples: Number of samples returned from `create_xy_dataset()`
-        shuffle: Whether to shuffle the dataset (e.g. shuffle for train, but not
+        shuffle: Whether to shuffle the dataset (Suggestion: shuffle for train, but not
             for test)
         batch_size: Batch size for batched dataset (used when training and inference)
         cache_path: Data cache file path e.g. "data/train". Can be None to not cache.
         drop_remainder: The last batch in the dataset will be smaller than other
-            batches if set to True.
+            batches if set to True. (Leave this to True always, if you want precise
+            accuracy evaluation)
 
     # Troubleshooting
         If you see an error like `ValueError: Tensor's shape (x,) is not compatible
