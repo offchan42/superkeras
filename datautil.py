@@ -73,7 +73,9 @@ def create_image_label_dataset(image_paths, labels, image_loader):
     """
     Create a dataset with (image, label) pairs when iterated through.
     # Args
-        labels: If it's None, only dataset with images will be returned
+        image_paths: A list of strings representing paths to load image.
+        labels: A list of labels. If it's None, only dataset with images will be returned
+        image_loader: Can be created by calling `create_image_loader(...)`
     """
     path_ds = Dataset.from_tensor_slices(image_paths)
     image_ds = path_ds.map(image_loader, num_parallel_calls=AUTOTUNE)
