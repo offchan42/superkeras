@@ -4,13 +4,13 @@ from tensorflow.data import Dataset
 from collections import namedtuple
 
 
-class DatasetKit(namedtuple('DatasetKit', ['name', 'ds', 'n', 'dsb', 'batch_size', 'steps', 'shuffle'])):
+class DatasetKit(namedtuple('DatasetKit', ['cache_path', 'ds', 'n', 'dsb', 'batch_size', 'steps', 'shuffle'])):
     """
     DatasetKit is supposed to contain [train data XOR test data], not both at the same time.
     You can pass `dsb` to kr.Model.fit() along with `steps`.
 
     # Attributes
-        name: name of the dataset, used when naming cache files
+        cache_path: Path of the cache files
         ds: The dataset content. When iterated, give one sample at a time.
         n: The amount of iterations to complete one epoch of `ds`
         dsb: The dataset content (batched). When iterated, give a batch of samples at a time.
@@ -69,35 +69,54 @@ def create_image_loader(channels=0, prep_func=None, width=None, height=None,
     return load_and_preprocess_image
 
 
-def create_image_label_dataset(image_paths, labels, image_loader):
+def create_xy_dataset(xs, ys, xmap=None):
     """
-    Create a dataset with (image, label) pairs when iterated through.
+    Create a zipped dataset with (x, y) pairs when iterated through.
     # Args
-        image_paths: A list of strings representing paths to load image.
-        labels: A list of labels. If it's None, only dataset with images will be returned
-        image_loader: Can be created by calling `create_image_loader(...)`
+        xs: A list of x, e.g. a list of strings representing image paths.
+        ys: A list of y. e.g. a list of image labels (numpy array).
+            If it's None, only dataset with xs will be returned.
+        xmap: A function to map to each x in xs, to obtain new xs list.
+            E.g. an image loader function which reads image from a path. It can
+            be created by calling `create_image_loader(...)`.
+    # Returns
+        The zipped dataset and its number of samples
     """
-    path_ds = Dataset.from_tensor_slices(image_paths)
-    image_ds = path_ds.map(image_loader, num_parallel_calls=AUTOTUNE)
-    if labels is None:
-        return image_ds
-    label_ds = Dataset.from_tensor_slices(labels)
-    image_label_ds = Dataset.zip((image_ds, label_ds))
-    return image_label_ds
+    x_ds = Dataset.from_tensor_slices(xs)
+    if xmap is not None:
+        x_ds = x_ds.map(xmap, num_parallel_calls=AUTOTUNE)
+    if ys is None:
+        return x_ds
+    y_ds = Dataset.from_tensor_slices(ys)
+    zipped_ds = Dataset.zip((x_ds, y_ds))
+    return zipped_ds, len(xs)
 
 
-def create_image_label_dataset_kit(name, image_paths, labels, shuffle, batch_size, drop_remainder=True):
+def create_xy_dataset_kit(xy_dataset, n_samples, shuffle, batch_size, cache_path=None, drop_remainder=True):
     """
-    If you see an error like `ValueError: Tensor's shape (x,) is not compatible with supplied shape (h, w, 1)`
-    Make sure that you delete all cache files first.
+    Create an (x,y) DatasetKit instance (you can check its doc for how to use it)
+    representing a training set or test set, but not both at the same time.
+
     # Args
-        name: Data cache file name
-        labels: If it's None, only dataset with images will be returned
+        xy_dataset: An instance of tf.data.Dataset created from `create_xy_dataset()`
+        n_samples: Number of samples returned from `create_xy_dataset()`
+        shuffle: Whether to shuffle the dataset (e.g. shuffle for train, but not
+            for test)
+        batch_size: Batch size for batched dataset (used when training and inference)
+        cache_path: Data cache file path e.g. "data/train". Can be None to not cache.
+        drop_remainder: The last batch in the dataset will be smaller than other
+            batches if set to True.
+
+    # Troubleshooting
+        If you see an error like `ValueError: Tensor's shape (x,) is not compatible
+        with supplied shape (h, w, 1)` Make sure that you delete all cache files first.
     """
-    ds = create_image_label_dataset(image_paths, labels).cache('data/' + name)
+    ds = xy_dataset
+    if cache_path is not None:
+        ds = ds.cache(cache_path)
     dsb = ds
-    n = len(image_paths)
+    n = n_samples
     if shuffle:
         dsb = dsb.shuffle(n)
     dsb = dsb.repeat().batch(batch_size, drop_remainder=drop_remainder).prefetch(AUTOTUNE)
-    return DatasetKit(name, ds, n, dsb, batch_size, n // batch_size, shuffle)
+    return DatasetKit(cache_path, ds, n, dsb, batch_size, n // batch_size, shuffle)
