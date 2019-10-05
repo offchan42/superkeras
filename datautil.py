@@ -8,7 +8,7 @@ class DatasetKit(namedtuple('DatasetKit', ['name', 'ds', 'n', 'dsb', 'batch_size
     """
     DatasetKit is supposed to contain [train data XOR test data], not both at the same time.
     You can pass `dsb` to kr.Model.fit() along with `steps`.
-    
+
     # Attributes
         name: name of the dataset, used when naming cache files
         ds: The dataset content. When iterated, give one sample at a time.
@@ -28,7 +28,7 @@ def create_image_loader(channels=None, prep_func=None, width=None, height=None,
     (height, width, channels) representing an image.
     The output tensor will consist of values between 0 and 1.
     The image will be resized if `width` and `height` are provided.
-    
+
     # Args
         channels: Number of color channels, e.g. 0, 1, or 3
         prep_func: Preprocessing procedure to perform to the image before it is resized.
@@ -42,24 +42,22 @@ def create_image_loader(channels=None, prep_func=None, width=None, height=None,
         resize_method: The interpolation method when resizing
             (default=tf.image.ResizeMethod.AREA)
     """
+    # if width and height are provided, we will resize the image
+    hw_count = 0
+    if width is not None: hw_count += 1
+    if height is not None: hw_count += 1
+    if hw_count == 1:
+        raise ValueError("Please provide both `width` and `height` to resize image.")
+
     def load_and_preprocess_image(path):
         """Load image from `path` and return as 3D tf.Tensor"""
         image = tf.io.read_file(path)
         image = tf.image.decode_image(image, channels=channels, dtype=tf.uint8)
-        
         if prep_func is not None:
-            [image,] = tf.py_function(prep_func, [image], [tf.uint8])
+            [image, ] = tf.py_function(prep_func, [image], [tf.uint8])
         image = tf.dtypes.cast(image, tf.float32) / 255.0
-
-        # if width and height are provided, we will resize the image
-        hw_count = 0
-        if width is not None: hw_count += 1
-        if height is not None: hw_count += 1
-        elif hw_count == 1:
-            raise ValueError("Please provide both `width` and `height` to resize image.")
-        elif hw_count == 2:
+        if hw_count == 2:
             image = tf.image.resize(image, (height, width))
-
         return image  # return 3D tensor
     return load_and_preprocess_image
 
