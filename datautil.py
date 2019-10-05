@@ -70,8 +70,8 @@ def create_image_label_dataset(image_paths, labels, image_loader):
 
 def create_image_label_dataset_kit(name, image_paths, labels, shuffle, batch_size, drop_remainder=True):
     """
-    If you see an error like `ValueError: Tensor's shape (52,) is not compatible with supplied shape (80, 80, 1)`
-    Make sure that you delete the cache file first.
+    If you see an error like `ValueError: Tensor's shape (x,) is not compatible with supplied shape (h, w, 1)`
+    Make sure that you delete all cache files first.
     # Args
         name: Data cache file name
         labels: If it's None, only dataset with images will be returned
