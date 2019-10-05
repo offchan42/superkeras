@@ -4,7 +4,11 @@ from tensorflow.data import Dataset
 from collections import namedtuple
 
 
-class DatasetKit(namedtuple('DatasetKit', ['cache_path', 'ds', 'n', 'dsb', 'batch_size', 'steps', 'shuffle'])):
+class DatasetKit(
+    namedtuple(
+        "DatasetKit", ["cache_path", "ds", "n", "dsb", "batch_size", "steps", "shuffle"]
+    )
+):
     """
     DatasetKit is supposed to contain [train data XOR test data], not both at the same time.
     You can pass `dsb` to kr.Model.fit() along with `steps`.
@@ -19,11 +23,17 @@ class DatasetKit(namedtuple('DatasetKit', ['cache_path', 'ds', 'n', 'dsb', 'batc
         shuffle: Whether the dataset was shuffled. Should be set to True for training set.
             But can be False for test set.
     """
+
     pass
 
 
-def create_image_loader(channels=0, prep_func=None, width=None, height=None,
-                    resize_method=tf.image.ResizeMethod.AREA):
+def create_image_loader(
+    channels=0,
+    prep_func=None,
+    width=None,
+    height=None,
+    resize_method=tf.image.ResizeMethod.AREA,
+):
     """Create a function that receives an image file path and returns a 3D tf.Tensor
     (height, width, channels) representing an image.
     The output tensor will consist of values between 0 and 1.
@@ -45,8 +55,10 @@ def create_image_loader(channels=0, prep_func=None, width=None, height=None,
     """
     # if width and height are provided, we will resize the image
     hw_count = 0
-    if width is not None: hw_count += 1
-    if height is not None: hw_count += 1
+    if width is not None:
+        hw_count += 1
+    if height is not None:
+        hw_count += 1
     if hw_count == 1:
         raise ValueError("Please provide both `width` and `height` to resize image.")
 
@@ -57,15 +69,17 @@ def create_image_loader(channels=0, prep_func=None, width=None, height=None,
         image = tf.cond(
             tf.image.is_jpeg(image),
             lambda: tf.image.decode_jpeg(image, channels=channels),
-            lambda: tf.image.decode_png(image, channels=channels, dtype=tf.uint8))
+            lambda: tf.image.decode_png(image, channels=channels, dtype=tf.uint8),
+        )
         if prep_func is not None:
             im_shape = image.shape
-            [image, ] = tf.py_function(prep_func, [image], [tf.uint8])
+            [image] = tf.py_function(prep_func, [image], [tf.uint8])
             image.set_shape(im_shape)  # if we don't do this we will see unknown shape
         image = tf.image.convert_image_dtype(image, tf.float32)
         if hw_count == 2:
             image = tf.image.resize(image, (height, width))
         return image  # return 3D tensor
+
     return load_and_preprocess_image
 
 
@@ -92,7 +106,9 @@ def create_xy_dataset(xs, ys, xmap=None):
     return zipped_ds, len(xs)
 
 
-def create_xy_dataset_kit(xy_dataset, n_samples, shuffle, batch_size, cache_path=None, drop_remainder=True):
+def create_xy_dataset_kit(
+    xy_dataset, n_samples, shuffle, batch_size, cache_path=None, drop_remainder=True
+):
     """
     Create an (x,y) DatasetKit instance (you can check its doc for how to use it)
     representing a training set or test set, but not both at the same time.
@@ -118,5 +134,7 @@ def create_xy_dataset_kit(xy_dataset, n_samples, shuffle, batch_size, cache_path
     n = n_samples
     if shuffle:
         dsb = dsb.shuffle(n)
-    dsb = dsb.repeat().batch(batch_size, drop_remainder=drop_remainder).prefetch(AUTOTUNE)
+    dsb = (
+        dsb.repeat().batch(batch_size, drop_remainder=drop_remainder).prefetch(AUTOTUNE)
+    )
     return DatasetKit(cache_path, ds, n, dsb, batch_size, n // batch_size, shuffle)
