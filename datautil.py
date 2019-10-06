@@ -6,6 +6,7 @@ import tensorflow as tf
 from tensorflow.data.experimental import AUTOTUNE
 from tensorflow.data import Dataset
 from collections import namedtuple
+import math
 
 
 class DatasetKit(
@@ -19,7 +20,7 @@ class DatasetKit(
             "batch_size",
             "steps",
             "steps_float",
-            "shuffle",
+            "shuffle_buffer",
         ],
     )
 ):
@@ -35,9 +36,7 @@ class DatasetKit(
         batch_size: The batch size for `dsb`
         steps: The estimated amount of iterations to complete one epoch of `dsb`.
         steps_float: The exact amount of iterations to complete one epoch of `dsb`.
-            If the value is close to `steps` it means precise evaluation will happen.
-        shuffle: Whether the dataset was shuffled. Should be set to True for training set.
-            But can be False for test set.
+        shuffle_buffer: Shuffle buffer size
     """
 
     pass
@@ -49,7 +48,7 @@ def create_image_loader(
     width=None,
     height=None,
     resize_method=tf.image.ResizeMethod.AREA,
-    intensity_range=[0, 1]
+    intensity_range=[0, 1],
 ):
     """Create a function that receives an image file path and returns a 3D tf.Tensor
     (height, width, channels) representing an image.
@@ -156,7 +155,9 @@ def create_xy_dataset(xs, ys, xmap=None):
     return zipped_ds, len(xs)
 
 
-def create_xy_dataset_kit(xy_dataset, n_samples, cache_path, shuffle, batch_size):
+def create_xy_dataset_kit(
+    xy_dataset, n_samples, cache_path, shuffle_buffer, batch_size
+):
     """
     Create an (x,y) DatasetKit instance (you can check its doc for how to use it)
     representing either a training set or test set, but not both at the same time.
@@ -167,28 +168,24 @@ def create_xy_dataset_kit(xy_dataset, n_samples, cache_path, shuffle, batch_size
         1. cache ds (maybe)
         2. dsb = ds
         3. shuffle dsb (maybe)
-        4. repeat dsb (to work with keras.Model.fit(), it expects repeating dataset
-            for both train and validation set)
-        5. batch dsb
-        6. prefetch dsb (to load next batch while the model is training)
+        4. batch dsb
+        5. prefetch dsb (to load next batch while the model is training)
 
     # Args
         xy_dataset: An instance of tf.data.Dataset created from `create_xy_dataset()`
         n_samples: Number of samples returned from `create_xy_dataset()`
-        cache_path: Data cache file path e.g. "data/train". Can be None to not cache.
-        shuffle: Whether to shuffle the dataset (Suggestion: shuffle for train, but not
-            for test)
-        batch_size: Batch size for batched dataset (used when training and inference)
-            Choose `batch_size` that divides (or almost divides) `n_samples`
-            will provide better evaluation measurement.
+        cache_path: Data cache file path e.g. "cache/train". Can be None to not cache.
+        shuffle_buffer: Shuffle buffer size e.g. 1000, set to 0 to not shuffle,
+        (Suggestion: shuffle for train, but not for test)
+        batch_size: Batch size for batched dataset (`dsb`)
 
     # Example
         >>> ds, n = datautil.create_xy_dataset(...)
-        >>> train_kit = datautil.create_xy_dataset_kit(ds, n, None, True, 32)
+        >>> train_kit = datautil.create_xy_dataset_kit(ds, n, None, n, 32)
         >>> ds, n = datautil.create_xy_dataset(...)
-        >>> test_kit = datautil.create_xy_dataset_kit(ds, n, None, False, 256)
+        >>> test_kit = datautil.create_xy_dataset_kit(ds, n, None, 0, 256)
         >>> model = keras.layers.Sequential(...)
-        >>> model.fit(train_kit.dsb, steps_per_epoch=train_kit.steps, epochs=200, validation_data=test_kit.dsb, validation_steps=test_kit.steps)
+        >>> model.fit(train_kit.dsb, epochs=200, validation_data=test_kit.dsb)
         >>> loss, mae = model.evaluate(test_kit.ds.batch(256))
 
     # Troubleshooting
@@ -202,12 +199,14 @@ def create_xy_dataset_kit(xy_dataset, n_samples, cache_path, shuffle, batch_size
         ds = ds.cache(cache_path)
     dsb = ds
     n = n_samples
-    if shuffle:
-        dsb = dsb.shuffle(n)
-    # keras requires that both training and validation set are repeating
-    dsb = dsb.repeat().batch(batch_size).prefetch(AUTOTUNE)
+    if shuffle_buffer > 0:
+        dsb = dsb.shuffle(shuffle_buffer)
+    dsb = dsb.batch(batch_size).prefetch(AUTOTUNE)
     steps_f = n / batch_size
-    steps = int(round(steps_f))
+    steps = int(math.ceil(steps_f))
     if steps == 0:
         raise ValueError("steps == 0, please reduce `batch_size`!")
-    return DatasetKit(cache_path, ds, n, dsb, batch_size, steps, steps_f, shuffle)
+    return DatasetKit(
+        cache_path, ds, n, dsb, batch_size, steps, steps_f, shuffle_buffer
+    )
+
