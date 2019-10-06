@@ -48,7 +48,7 @@ def create_image_loader(
     width=None,
     height=None,
     resize_method=tf.image.ResizeMethod.AREA,
-    intensity_range=[0, 1],
+    intensity_range=None,
 ):
     """Create a function that receives an image file path and returns a 3D tf.Tensor
     (height, width, channels) representing an image.
@@ -72,7 +72,8 @@ def create_image_loader(
             default=tf.image.ResizeMethod.AREA (OpenCV said it's good for
             downsampling images)
         intensity_range: The range of available values that a pixel can contain.
-            E.g. in some model like MobileNetV2, it expects [-1, 1] intensity range
+            E.g. in some model like MobileNetV2, it expects (-1, 1) intensity range.
+            If not set, the default range is (0, 1).
 
     # Example
         >>> import cv2 as cv
@@ -108,13 +109,13 @@ def create_image_loader(
             im_shape = image.shape
             [image] = tf.py_function(prep_func, [image], [tf.uint8])
             image.set_shape(im_shape)  # if we don't do this we will see unknown shape
-        image = tf.image.convert_image_dtype(image, tf.float32)
+        image = tf.image.convert_image_dtype(image, tf.float32)  # to range (0, 1)
         if hw_count == 2:
             image = tf.image.resize(image, (height, width))
-        if intensity_range != [0, 1]:
+        if intensity_range is not None:
             low, high = intensity_range
-            scale = high - low
-            image = low + scale * image
+            image *= high - low
+            image += low
         return image  # return 3D tensor
 
     return load_and_preprocess_image
