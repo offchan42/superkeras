@@ -3,10 +3,11 @@ tf.data utilities
 The most useful function that you can check is `create_xy_dataset_kit()`.
 """
 import tensorflow as tf
-from tensorflow.data.experimental import AUTOTUNE
-from tensorflow.data import Dataset
 from collections import namedtuple
 import math
+
+AUTOTUNE = tf.data.experimental.AUTOTUNE
+Dataset = tf.data.Dataset
 
 
 class DatasetKit(
