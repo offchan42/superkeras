@@ -49,6 +49,7 @@ def create_image_loader(
     width=None,
     height=None,
     resize_method=tf.image.ResizeMethod.AREA,
+    intensity_range=[0, 1]
 ):
     """Create a function that receives an image file path and returns a 3D tf.Tensor
     (height, width, channels) representing an image.
@@ -71,6 +72,8 @@ def create_image_loader(
         resize_method: The interpolation method when resizing.
             default=tf.image.ResizeMethod.AREA (OpenCV said it's good for
             downsampling images)
+        intensity_range: The range of available values that a pixel can contain.
+            E.g. in some model like MobileNetV2, it expects [-1, 1] intensity range
 
     # Example
         >>> import cv2 as cv
@@ -109,6 +112,10 @@ def create_image_loader(
         image = tf.image.convert_image_dtype(image, tf.float32)
         if hw_count == 2:
             image = tf.image.resize(image, (height, width))
+        if intensity_range != [0, 1]:
+            low, high = intensity_range
+            scale = high - low
+            image = low + scale * image
         return image  # return 3D tensor
 
     return load_and_preprocess_image
