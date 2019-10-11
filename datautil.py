@@ -2,9 +2,12 @@
 tf.data utilities
 The most useful function that you can check is `create_xy_dataset_kit()`.
 """
-import tensorflow as tf
-from collections import namedtuple
 import math
+import os
+import sys
+from collections import namedtuple
+
+import tensorflow as tf
 
 AUTOTUNE = tf.data.experimental.AUTOTUNE
 Dataset = tf.data.Dataset
@@ -30,7 +33,7 @@ class DatasetKit(
     You can pass `dsb` to kr.Model.fit() along with `steps`.
 
     # Attributes
-        cache_path: Path of the cache files
+        cache_path: Initial path of the cache files e.g. "cache/train"
         ds: The dataset content. When iterated, give one sample at a time.
         n: The amount of iterations to complete one epoch of `ds`
         dsb: The dataset content (batched). When iterated, give a batch of samples at a time.
@@ -198,6 +201,21 @@ def create_xy_dataset_kit(
     """
     ds = xy_dataset
     if cache_path is not None:
+        cache_dir = os.path.dirname(cache_path)
+        if not os.path.exists(cache_dir):
+            print(
+                f"[WARN] Cache directory '{cache_dir}' does not exist. "
+                "Please create an empty directory there.",
+                file=sys.stderr,
+            )
+        else:
+            cache_index = cache_path + ".index"
+            if os.path.exists(cache_index):
+                print(
+                    f"[WARN] Cache file already exists at '{cache_index}'. "
+                    "Consider deleting them if you changed the dataset.",
+                    file=sys.stderr,
+                )
         ds = ds.cache(cache_path)
     dsb = ds
     n = n_samples
@@ -211,4 +229,3 @@ def create_xy_dataset_kit(
     return DatasetKit(
         cache_path, ds, n, dsb, batch_size, steps, steps_f, shuffle_buffer
     )
-
