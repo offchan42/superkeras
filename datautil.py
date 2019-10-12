@@ -224,8 +224,6 @@ def create_xy_dataset_kit(
     dsb = dsb.batch(batch_size).prefetch(AUTOTUNE)
     steps_f = n / batch_size
     steps = int(math.ceil(steps_f))
-    if steps == 0:
-        raise ValueError("steps == 0, please reduce `batch_size`!")
     return DatasetKit(
         cache_path, ds, n, dsb, batch_size, steps, steps_f, shuffle_buffer
     )
