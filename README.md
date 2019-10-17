@@ -34,6 +34,7 @@ Download this repository and put it inside your project as a folder named `super
 
   To use it without the need to understand too much details,
   you can use `PermutationalModule`.
+- `import superkeras.pointnet` to use `PointNet` architecture from the [PointNet: Deep Learning on Point Sets for 3D Classification and Segmentation](https://arxiv.org/abs/1612.00593) paper.
 - `import superkeras.utils` to use some helper functions not related to `keras` e.g. `make_xy_3d` for converting
   a time-series `DataFrame` into a 3D data for ConvNets or LSTM.
   
