@@ -78,7 +78,15 @@ def ExpandAndRepeat(dim, repeats):
     return kl.Lambda(expand, name="expand_and_repeat")
 
 
-def build_pointnet(n_dims, n_classes, n_points=None, depth=1.0, mode="segmentation"):
+def build_pointnet(
+    n_dims,
+    n_classes,
+    n_points=None,
+    predict_first_n=None,
+    predict_last_n=None,
+    depth=1.0,
+    mode="segmentation",
+):
     """Build the PointNet model that accept `n_points` inputs and output
     `n_points * n_classes` softmax value.
     # Args
@@ -86,19 +94,25 @@ def build_pointnet(n_dims, n_classes, n_points=None, depth=1.0, mode="segmentati
         n_classes: How many classes to predict for each point.
         n_points: Number of input points and output points, can be None for
             variable number of points.
+        predict_first_n: If specified, will predict only first N points.
+            Used when the other points are for assistance only.
+        predict_last_n: If specified, will predict only last N points.
+            Used when the other points are for assistance only.
         depth: Multiplier to apply to the number of filters in each layer.
-    The currently allowed mode is "segmentation" only. Classification will be
-    supported in the future.
+        mode: Either segmentation or classification. The currently allowed mode
+            is "segmentation" only. Classification will be supported in the future.
     """
     if mode != "segmentation":
         raise ValueError("Currently support only 'segmentation' mode.")
+    if predict_first_n and predict_last_n:
+        raise ValueError("Please slice first XOR slice last only.")
 
     # the following operations mimic closely to figure 2 of the paper
-    inp = kr.Input(shape=(n_points, n_dims))
+    inp_pts = kr.Input(shape=(n_points, n_dims))
     input_tnet = build_tnet(
         n_dims, n_dims, n_points=n_points, depth=depth, name="input_tnet"
     )
-    tmp = transform(inp, input_tnet)  # input transform
+    tmp = transform(inp_pts, input_tnet)  # input transform
     tmp = conv_stack([64, 64], depth=depth)(tmp)  # shared MLP
     tmp_dims = tmp.shape[-1]
     feature_tnet = build_tnet(
@@ -111,14 +125,24 @@ def build_pointnet(n_dims, n_classes, n_points=None, depth=1.0, mode="segmentati
     global_feature = kl.GlobalMaxPooling1D()(tmp)
 
     # combine feature and global feature to make segmentation head
-    repeats = n_points if n_points else tf.shape(inp)[1]
-    global_feature_repeat = ExpandAndRepeat(1, repeats)(global_feature)
+    if not predict_first_n and not predict_last_n:
+        repeats = n_points if n_points else tf.shape(inp_pts)[1]
+    elif predict_first_n:
+        feature = feature[:, :predict_first_n, :]
+        repeats = predict_first_n if n_points else tf.shape(feature)[1]
+    elif predict_last_n:
+        feature = feature[:, -predict_last_n:, :]
+        repeats = predict_last_n if n_points else tf.shape(feature)[1]
+    else:
+        raise ValueError("Unexpected bug, both values are not true??")
+    global_feature = ExpandAndRepeat(1, repeats)(global_feature)
+    pp(feature, global_feature)
     combined_feature = kl.concatenate(
-        [feature, global_feature_repeat], name="combined_feature"
+        [feature, global_feature], name="combined_feature"
     )
     point_feature = conv_stack([512, 256, 128, 128], depth=depth)(combined_feature)
     out = kl.Conv1D(n_classes, 1, activation="softmax")(point_feature)
-    model = kr.Model(inp, out, name="pointnet")
+    model = kr.Model(inp_pts, out, name="pointnet")
     return model
 
 
