@@ -1,5 +1,6 @@
 """
 PointNet implementation in tensorflow.keras
+Look at the bottom __main__ section to see how to use PointNet architecture.
 See paper: https://arxiv.org/abs/1612.00593
 """
 import tensorflow as tf
