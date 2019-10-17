@@ -75,18 +75,24 @@ def ExpandAndRepeat(dim, repeats):
     return kl.Lambda(expand, name="expand_and_repeat")
 
 
-if __name__ == "__main__":
-    print(__doc__)
-    n_points = None
-    input_tnet = build_tnet(3, 3, n_points=n_points, name="input_tnet")
-    # input_tnet.summary()
-    feature_tnet = build_tnet(64, 64, n_points=n_points, name="feature_tnet")
-    # feature_tnet.summary()
+def build_pointnet(n_dims, n_classes, n_points=None, mode="segmentation"):
+    """Build the PointNet model that accept `n_points` inputs and output
+    `n_points * n_classes` softmax value.
+    # Args
+        n_dims: Number of input dimensions e.g. 3 for 3 dimensional points
+        n_classes: How many classes to predict for each point.
+    The currently allowed mode is "segmentation" only. Classification will be
+    supported in the future.
+    """
+    if mode != "segmentation":
+        raise ValueError("Currently support only 'segmentation' mode.")
 
     # the following operations mimic closely to figure 2 of the paper
-    inp = kr.Input(shape=(n_points, 3))
+    inp = kr.Input(shape=(n_points, n_dims))
+    input_tnet = build_tnet(n_dims, n_dims, n_points=n_points, name="input_tnet")
     tmp = transform(inp, input_tnet)  # input transform
     tmp = conv_stack([64, 64])(tmp)  # shared MLP
+    feature_tnet = build_tnet(64, 64, n_points=n_points, name="feature_tnet")
     feature = transform(tmp, feature_tnet, name="feature")  # feature transform
 
     # feature => global feature for classifier
@@ -100,10 +106,16 @@ if __name__ == "__main__":
         [feature, global_feature_repeat], name="combined_feature"
     )
     point_feature = conv_stack([512, 256, 128, 128])(combined_feature)
-    out = kl.Conv1D(2, 1, activation='softmax')(point_feature)
+    out = kl.Conv1D(n_classes, 1, activation="softmax")(point_feature)
     model = kr.Model(inp, out, name="pointnet")
+    return model
+
+
+if __name__ == "__main__":
+    print(__doc__)
+    model = build_pointnet(3, 4, n_points=None)
+    model.summary()
     pred = model.predict(np.random.random((1, 500, 3)))
     pp(pred.shape)
     pp(pred)
-    model.summary()
 
