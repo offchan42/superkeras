@@ -55,10 +55,55 @@ def build_tnet(input_dim, output_dim, n_points=None, name="t_net", **kwargs):
     return model
 
 
+def transform(points, tnet, name="transform"):
+    """
+    Multiply `points` tensor by `tnet` output matrix.
+    Return multiplied tensor with same shape as `points`"""
+    return tf.matmul(points, tnet(points), name=name)
+
+
+def ExpandAndRepeat(dim, repeats):
+    """Create layer to expand dimension=`dim` and repeat dimension `repeats` time."""
+
+    def expand(x):
+        x = tf.expand_dims(x, dim)
+        n_dims = len(x.shape)
+        multiples = [1] * n_dims
+        multiples[dim] = repeats
+        return tf.tile(x, multiples)
+
+    return kl.Lambda(expand, name="expand_and_repeat")
+
+
 if __name__ == "__main__":
     print(__doc__)
-    n_points = 1000
+    n_points = None
     input_tnet = build_tnet(3, 3, n_points=n_points, name="input_tnet")
+    # input_tnet.summary()
     feature_tnet = build_tnet(64, 64, n_points=n_points, name="feature_tnet")
+    # feature_tnet.summary()
 
-    feature_tnet.summary()
+    # the following operations mimic closely to figure 2 of the paper
+    inp = kr.Input(shape=(n_points, 3))
+    tmp = transform(inp, input_tnet)  # input transform
+    tmp = conv_stack([64, 64])(tmp)  # shared MLP
+    feature = transform(tmp, feature_tnet, name="feature")  # feature transform
+
+    # feature => global feature for classifier
+    tmp = conv_stack([64, 128, 1024])(feature)  # shared MLP
+    global_feature = kl.GlobalMaxPooling1D()(tmp)
+
+    # combine feature and global feature to make segmentation head
+    repeats = n_points if n_points else tf.shape(inp)[1]
+    global_feature_repeat = ExpandAndRepeat(1, repeats)(global_feature)
+    combined_feature = kl.concatenate(
+        [feature, global_feature_repeat], name="combined_feature"
+    )
+    point_feature = conv_stack([512, 256, 128, 128])(combined_feature)
+    out = kl.Conv1D(2, 1, activation='softmax')(point_feature)
+    model = kr.Model(inp, out, name="pointnet")
+    pred = model.predict(np.random.random((1, 500, 3)))
+    pp(pred.shape)
+    pp(pred)
+    model.summary()
+
