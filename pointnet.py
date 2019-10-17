@@ -5,10 +5,29 @@ See paper: https://arxiv.org/abs/1612.00593
 """
 import tensorflow as tf
 import numpy as np
+from .layers import LayerStack
 from snoop import pp
 
 kr = tf.keras
 kl = kr.layers
+
+
+def conv_stack(filters, kernel_size=1, batch_norm=True):
+    layers = []
+    for f in filters:
+        layers.append(kl.Conv1D(f, kernel_size, activation="relu"))
+        if batch_norm:
+            layers.append(kl.BatchNormalization())
+    return LayerStack(layers)
+
+
+def dense_stack(units, batch_norm=True):
+    layers = []
+    for unit in units:
+        layers.append(kl.Dense(unit, activation="relu"))
+        if batch_norm:
+            layers.append(kl.BatchNormalization())
+    return LayerStack(layers)
 
 
 def build_tnet(input_dim, output_dim, n_points=None, name="t_net", **kwargs):
@@ -21,17 +40,9 @@ def build_tnet(input_dim, output_dim, n_points=None, name="t_net", **kwargs):
     The output is shape (batch_size, output_dim, output_dim).
     """
     inp = kr.Input(shape=(n_points, input_dim))
-    x = kl.Convolution1D(64, 1, activation="relu")(inp)
-    x = kl.BatchNormalization()(x)
-    x = kl.Convolution1D(128, 1, activation="relu")(x)
-    x = kl.BatchNormalization()(x)
-    x = kl.Convolution1D(1024, 1, activation="relu")(x)
-    x = kl.BatchNormalization()(x)
+    x = conv_stack([64, 128, 1024])(inp)
     x = kl.GlobalMaxPooling1D()(x)
-    x = kl.Dense(512, activation="relu")(x)
-    x = kl.BatchNormalization()(x)
-    x = kl.Dense(256, activation="relu")(x)
-    x = kl.BatchNormalization()(x)
+    x = dense_stack([512, 256])(x)
     output_dim_sqr = output_dim * output_dim
     x = kl.Dense(
         output_dim_sqr,
@@ -46,5 +57,8 @@ def build_tnet(input_dim, output_dim, n_points=None, name="t_net", **kwargs):
 
 if __name__ == "__main__":
     print(__doc__)
-    tnet = build_tnet(3, 3, n_points=1000)
-    tnet.summary()
+    n_points = 1000
+    input_tnet = build_tnet(3, 3, n_points=n_points, name="input_tnet")
+    feature_tnet = build_tnet(64, 64, n_points=n_points, name="feature_tnet")
+
+    feature_tnet.summary()
