@@ -3,10 +3,10 @@ PointNet implementation in tensorflow.keras
 Look at the bottom __main__ section to see how to use PointNet architecture.
 See paper: https://arxiv.org/abs/1612.00593
 """
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
+
 from .layers import LayerStack
-from snoop import pp
 
 kr = tf.keras
 kl = kr.layers
@@ -136,7 +136,6 @@ def build_pointnet(
     else:
         raise ValueError("Unexpected bug, both values are not true??")
     global_feature = ExpandAndRepeat(1, repeats)(global_feature)
-    pp(feature, global_feature)
     combined_feature = kl.concatenate(
         [feature, global_feature], name="combined_feature"
     )
