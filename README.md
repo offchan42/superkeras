@@ -6,12 +6,14 @@ A bunch of Keras utilities and paper implementations written under TensorFlow ba
 
 Download this repository and put it inside your project as a folder named `superkeras`.
 
+### General utilities/helpers/extras
+
 - `import superkeras.layers` to use use functions and classes in the file. Contains some useful functions like:
   - `repeat_layers` for creating multiple layers with the same type
   - `apply_residual_block` function for building ResNet-like architecture, making the network able to learn without
     degradation when the depth is very deep
   - `BlurPool` antialiased layer to make ConvNet shift-invariant, also increase accuracy.
-  See https://github.com/adobe/antialiased-cnns
+    See https://github.com/adobe/antialiased-cnns
   - `Arithmetic` layer for performing simple arithmetic operations on a trainable weight
   - `NormalizeQuaternion` layer for normalizing Quaternion data to have magnitude of 1.
   - and couple more utilities
@@ -23,6 +25,11 @@ Download this repository and put it inside your project as a folder named `super
     `mean_sqr_quat_angle` are for computing Quaternion difference, must be used
     with normalized quaternion (output of `NormalizeQuaternion` layer).
 - `import superkeras.datautil` to use utilities made for `tf.data` module
+- `import superkeras.utils` to use some helper functions not related to `keras` e.g. `make_xy_3d` for converting
+  a time-series `DataFrame` into a 3D data for ConvNets or LSTM.
+
+### Paper implementations
+
 - `import superkeras.permutational_layer` to use `PermutationalLayer`
   model implemented accurately following the paper [Permutation-equivariant
   neural networks applied to dynamics
@@ -34,13 +41,22 @@ Download this repository and put it inside your project as a folder named `super
 
   To use it without the need to understand too much details,
   you can use `PermutationalModule`.
-- `import superkeras.pointnet` to use `PointNet` architecture from the [PointNet: Deep Learning on Point Sets for 3D Classification and Segmentation](https://arxiv.org/abs/1612.00593) paper.
-- `import superkeras.utils` to use some helper functions not related to `keras` e.g. `make_xy_3d` for converting
-  a time-series `DataFrame` into a 3D data for ConvNets or LSTM.
-  
-- Run `pytest` to run test files that have name starting with `test_`.
-- For any functions that are not mentioned here but exist in the file, you can use them.
-  All of the functions that are supposed to be usable usually have documentation written very good on them. So check that!
+
+  You can run the main code in the module to understand how it works intuitively.
+
+- `import superkeras.pointnet` to use `PointNet` architecture from the
+  [PointNet: Deep Learning on Point Sets for 3D Classification and Segmentation](https://arxiv.org/abs/1612.00593) paper.
+  PointNet also allows modeling of permutation invariance problems, it's computationally cheaper than `PermutationalLayer`
+  for large amount of point instances as it's computationally cheaper.
+
+  You can run the main code in the module to understand how it works intuitively.
+
+## Tips
+
+You can run `pytest` to run test files that have name starting with `test_`.
+
+For any functions that are not mentioned here but exist in the file, you can use them.
+All of the functions that are supposed to be usable usually have documentation written very good on them. So check that!
 
 ## Troubleshooting
 
@@ -59,7 +75,21 @@ Download this repository and put it inside your project as a folder named `super
   from keras.models import load_model
   model = load_model('model_path.h5', custom_objects=dict(mean_quat_angle_deg=mean_quat_angle_deg))
   ```
-  
+
   There are many possible metric functions that this error can indicate.
   Most of the functions live in `losses` and `layers` module.
   So you must provide all of the unknown functions into `custom_objects`.
+
+## FAQ
+
+### How do I run the example main code in `permutational_layer.py` or `pointnet.py`?
+
+You can run each file as a module of `superkeras` package by changing directory to be above `superkeras` and then run
+`python -m superkeras.pointnet` for example. You cannot run `python pointnet.py` because this kind of run is not working
+with relative imports.
+
+### Why is this library named `superkeras`?
+
+When I was searching for a unique name for my keras helper utilities like keras helpers, keras utils, keras extras, etc,
+I've found that all of those names were already chosen by someone else. I don't want to repeat the name so I thought of
+something cool and just name `superkeras` for ease in remembering.
