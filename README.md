@@ -2,9 +2,16 @@
 
 A bunch of Keras utilities and paper implementations written under TensorFlow backend
 
+It is made to work nicely with `tensorflow.keras` and TensorFlow 2.0.
+
 ## How to use
 
 Download this repository and put it inside your project as a folder named `superkeras`.
+
+One of the nice option is to do `git submodule add https://github.com/off99555/superkeras` in order to download this repo
+and track it as a part of your Git repository because this repo is frequently updated.
+
+Then simply `import superkeras` to use all the functionalities provided. See more info below.
 
 ### General utilities/helpers/extras
 
