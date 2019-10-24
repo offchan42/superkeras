@@ -89,6 +89,7 @@ def build_pointnet(
 ):
     """Build the PointNet model that accept `n_points` inputs and output
     `n_points * n_classes` softmax value.
+
     # Args
         n_dims: Number of input dimensions e.g. 3 for 3 dimensional points
         n_classes: How many classes to predict for each point.
@@ -143,6 +144,32 @@ def build_pointnet(
     out = kl.Conv1D(n_classes, 1, activation="softmax")(point_feature)
     model = kr.Model(inp_pts, out, name="pointnet")
     return model
+
+
+def copy_pointnet(
+    model,
+    depth,
+    n_points=None,
+    predict_first_n=None,
+    predict_last_n=None,
+    mode="segmentation",
+):
+    """Copy the old point net model's weights. But change the number of n_points.
+    Everything else that cannot vary should be the same.
+    Usually, you will need to copy the model at inference phase if you want to
+    vary the number of input points.
+    """
+    model2 = build_pointnet(
+        model.input_shape[-1],
+        model.output_shape[-1],
+        n_points=n_points,
+        depth=depth,
+        predict_first_n=predict_first_n,
+        predict_last_n=predict_last_n,
+        mode=mode,
+    )
+    model2.set_weights(model.get_weights())
+    return model2
 
 
 if __name__ == "__main__":
