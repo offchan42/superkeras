@@ -153,12 +153,17 @@ def copy_pointnet(
     predict_first_n=None,
     predict_last_n=None,
     mode="segmentation",
+    compile=False
 ):
     """Copy the old point net model's weights. But change the number of n_points.
     Everything else that cannot vary should be the same.
     Usually, you will need to copy the model at inference phase if you want to
     vary the number of input points.
+    `model` can be a string representing the file path to the model to load.
+    `compile` is used when the model is loaded from disk.
     """
+    if isinstance(model, str):
+        model = kr.models.load_model(model, compile=compile)
     model2 = build_pointnet(
         model.input_shape[-1],
         model.output_shape[-1],
