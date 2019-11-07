@@ -54,9 +54,9 @@ Then simply `import superkeras` to use all the functionalities provided. See mor
 - `import superkeras.pointnet` to use `PointNet` architecture from the
   [PointNet: Deep Learning on Point Sets for 3D Classification and Segmentation](https://arxiv.org/abs/1612.00593) paper.
   PointNet also allows modeling of permutation invariance problems, it's computationally cheaper than `PermutationalLayer`
-  for large amount of point instances as it's computationally cheaper.
+  for large amount of point instances.
 
-  You can run the main code in the module to understand how it works intuitively.
+  You can run the main code in the module to understand how it practically works.
 
 ## Tips
 
