@@ -33,6 +33,17 @@ def dice_coef(y_true, y_pred, smooth=1):
     return dice
 
 
+def dice_loss(y_true, y_pred):
+    """Loss for image segmentation problems. It is usually combined with binary
+    cross entropy for robustness.
+
+    See: https://lars76.github.io/neural-networks/object-detection/losses-for-segmentation/
+    """
+    numerator = 2 * tf.reduce_sum(y_true * y_pred, axis=(1, 2, 3))
+    denominator = tf.reduce_sum(y_true + y_pred, axis=(1, 2, 3))
+    return tf.reshape(1 - numerator / denominator, (-1, 1, 1))
+
+
 def r2_score(y_true, y_pred):
     """R-squared score from 0 to 1. Can be used for evaluating regression problem."""
     SS_res = K.sum(K.square(y_true - y_pred))
