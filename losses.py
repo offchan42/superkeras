@@ -3,12 +3,34 @@ from tensorflow.keras import backend as K
 
 
 def iou_coef(y_true, y_pred, smooth=1):
-    """Intersection-over-Union coefficient from 0 to 1. Can be used to evaluate
-    image segmentation problems where the output of the model is an image."""
+    """
+    Intersection-over-Union coefficient from 0 to 1.
+
+    Can be used to evaluate image segmentation problems where the output of the
+    model are images or segmentation maps.
+    `y_true` and `y_pred` must have shape (num_images, height, width, classes)
+
+    See: https://towardsdatascience.com/metrics-to-evaluate-your-semantic-segmentation-model-6bcb99639aa2
+    """
     intersection = K.sum(K.abs(y_true * y_pred), axis=[1, 2, 3])
     union = K.sum(y_true, [1, 2, 3]) + K.sum(y_pred, [1, 2, 3]) - intersection
     iou = K.mean((intersection + smooth) / (union + smooth), axis=0)
     return iou
+
+
+def dice_coef(y_true, y_pred, smooth=1):
+    """Dice coefficient is the `2 * overlapped_area / total_area`
+
+    Can be used to evaluate image segmentation problems where the output of the
+    model are images or segmentation maps.
+    `y_true` and `y_pred` must have shape (num_images, height, width, classes)
+
+    See: https://towardsdatascience.com/metrics-to-evaluate-your-semantic-segmentation-model-6bcb99639aa2
+    """
+    intersection = K.sum(y_true * y_pred, axis=[1, 2, 3])
+    union = K.sum(y_true, axis=[1, 2, 3]) + K.sum(y_pred, axis=[1, 2, 3])
+    dice = K.mean((2.0 * intersection + smooth) / (union + smooth), axis=0)
+    return dice
 
 
 def r2_score(y_true, y_pred):
