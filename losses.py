@@ -2,6 +2,15 @@ import tensorflow as tf
 from tensorflow.keras import backend as K
 
 
+def iou_coef(y_true, y_pred, smooth=1):
+    """Intersection-over-Union coefficient from 0 to 1. Can be used to evaluate
+    image segmentation problems where the output of the model is an image."""
+    intersection = K.sum(K.abs(y_true * y_pred), axis=[1, 2, 3])
+    union = K.sum(y_true, [1, 2, 3]) + K.sum(y_pred, [1, 2, 3]) - intersection
+    iou = K.mean((intersection + smooth) / (union + smooth), axis=0)
+    return iou
+
+
 def r2_score(y_true, y_pred):
     """R-squared score from 0 to 1. Can be used for evaluating regression problem."""
     SS_res = K.sum(K.square(y_true - y_pred))
