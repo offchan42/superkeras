@@ -14,7 +14,7 @@ class BlurPool(Layer):
 
     You can replace AveragePooling or MaxPooling with the following guideline.
     1. Max Pooling: MaxPool(strides=2) => [MaxPool(strides=1), BlurPool(strides=2)]
-    2. Strided-Convolution: Conv(strides=2, 'relu') => [Conv(strides=2, 'relu'), BlurPool(strides=2)]
+    2. Strided-Convolution: Conv(strides=2, 'relu') => [Conv(strides=1, 'relu'), BlurPool(strides=2)]
     3. Average Pooling: AvgPool(strides=2) => BlurPool(strides=2)
 
     # Benefits
