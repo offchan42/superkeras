@@ -52,17 +52,21 @@ class Rect:
         return cx, cy, w, h
 
     def square(self):
-        """Return a square Rect"""
+        """Return a square Rect with side length = max(w, h)"""
         cx, cy, w, h = self.cxcywh
-        w = max(w, h)
-        h = max(w, h)
+        w = h = max(w, h)
         return Rect(cxcywh=(cx, cy, w, h))
 
     def scale(self, scale):
-        """Return a scaled Rect (scale=1 will do nothing)."""
+        """Return a scaled Rect (scale=1 will do nothing).
+        `scale` can be a tuple of (w, h) for scaling width and height unequally"""
         cx, cy, w, h = self.cxcywh
-        w *= scale
-        h *= scale
+        if isinstance(scale, tuple):
+            w *= scale[0]
+            h *= scale[1]
+        else:
+            w *= scale
+            h *= scale
         return Rect(cxcywh=(cx, cy, w, h))
 
     def draw(self, img, color, thick=1):
