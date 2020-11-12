@@ -1,7 +1,7 @@
 """Utilities used for manipulating images"""
 
-import numpy as np
 import cv2 as cv
+import numpy as np
 
 
 class Rect:
@@ -31,14 +31,17 @@ class Rect:
 
     @property
     def xyxy_int(self):
-        """Used for slicing the image (x1, y1, x2 + 1, y2 + 1) or drawing rect."""
-        x1, y1, x2, y2 = [int(x) for x in self.xyxy]
-        return x1, y1, x2 + 1, y2 + 1
+        """Used for slicing the image (x, y, x+w, y+h) or drawing rect."""
+        # reminder: we don't convert self.xyxy to int to prevent off-by-one error
+        # for width and height (causing by rounding error)
+        x, y, w, h = self.xywh_int
+        return x, y, x + w, y + h
 
     @property
     def xywh_int(self):
-        x1, y1, x2, y2 = self.xyxy_int
-        return x1, y1, x2 - x1, y2 - y1
+        x, y, w, h = self.xywh
+        x, y, w, h = int(x), int(y), int(round(w)), int(round(h))
+        return x, y, w, h
 
     @property
     def xyxy(self):
