@@ -4,5 +4,6 @@ import superkeras.losses
 import superkeras.permutational_layer
 import superkeras.pointnet
 import superkeras.utils
+import superkeras.imgutils
 
-__version__ = "0.2.2"
+__version__ = "0.3.0"

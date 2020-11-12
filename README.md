@@ -35,6 +35,8 @@ Then simply `import superkeras` to use all the functionalities provided. See mor
 - `import superkeras.datautil` to use utilities made for `tf.data` module
 - `import superkeras.utils` to use some helper functions not related to `keras` e.g. `make_xy_3d` for converting
   a time-series `DataFrame` into a 3D data for ConvNets or LSTM.
+- `import superkeras.imgutils` to use helper functions for manipulating images e.g. cropping with zero padding.
+  Please check `Rect` class which helps you a lot in bounding box related manipulation.
 
 ### Paper implementations
 
