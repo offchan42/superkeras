@@ -66,17 +66,30 @@ class Rect:
         w = h = max(w, h)
         return Rect(cxcywh=(cx, cy, w, h))
 
-    def scale(self, scale):
+    def scale(self, scale, around="center"):
         """Return a scaled Rect (scale=1 will do nothing).
-        `scale` can be a tuple of (w, h) for scaling width and height unequally"""
-        cx, cy, w, h = self.cxcywh
-        if isinstance(scale, tuple):
-            w *= scale[0]
-            h *= scale[1]
+
+        Args:
+            scale: can be a tuple of (w, h) for scaling width and height unequally.
+                or a single number
+            around: either "center" (scale around the (cx, cy) point),
+                "x1y1" (scale around the (x1,y1) point),
+                or "origin" (scale around the (0,0) point)
+        """
+        assert around in "center x1y1 origin".split()
+        if isinstance(scale, (tuple, list)):
+            sx, sy = scale
         else:
-            w *= scale
-            h *= scale
-        return Rect(cxcywh=(cx, cy, w, h))
+            sx = sy = scale
+        if around == "center":
+            cx, cy, w, h = self.cxcywh
+            return Rect(cxcywh=(cx, cy, w * sx, h * sy))
+        elif around == "x1y1":
+            x, y, w, h = self.xywh
+            return Rect(xywh=(x, y, w * sx, h * sy))
+        else:
+            x, y, w, h = self.xywh
+            return Rect(xywh=(x * sx, y * sy, w * sx, h * sy))
 
     def translate(self, sx, sy):
         """Move the rect (sx, sy) units"""
