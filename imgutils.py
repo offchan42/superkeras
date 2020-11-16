@@ -8,12 +8,14 @@ class Rect:
     """Bounding rect that support floating point values. Designed to be chained
     with multiple methods. Each method creates a new immutable Rect object."""
 
-    def __init__(self, coordinates=None, xywh=None, cxcywh=None):
+    def __init__(self, coordinates=None, xywh=None, cxcywh=None, xyxy=None):
         """Create Rect instance with one of the way we provide.
         # Args
             coordinates: Array of shape (N, 2) containing X and Y coordinates
-            xywh: A tuple (x,y,w,h) where x,y are the top-left of the rect
-            cxcywh: A tuple (cx,cy,w,h) where cx,cy are the center of the rect
+            xywh: A tuple (x,y,w,h) where (x,y) is the top-left of the rect
+            cxcywh: A tuple (cx,cy,w,h) where (cx,cy) is the center of the rect
+            xyxy: A tuple (x1,y1,x2,y2) where (x1,y1) is the top-left of the rect
+                and (x2, y2) is the bottom-right.
         """
         cnt = 0
         cnt += coordinates is not None
@@ -28,6 +30,9 @@ class Rect:
         if cxcywh is not None:
             cx, cy, w, h = cxcywh
             self.xywh = cx - w / 2, cy - h / 2, w, h
+        if xyxy is not None:
+            x1, y1, x2, y2 = xyxy
+            self.xywh = x1, y1, x2 - x1, y2 - y1
 
     @property
     def xyxy_int(self):
