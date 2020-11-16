@@ -77,6 +77,11 @@ class Rect:
             h *= scale
         return Rect(cxcywh=(cx, cy, w, h))
 
+    def translate(self, sx, sy):
+        """Move the rect (sx, sy) units"""
+        x, y, w, h = self.xywh
+        return Rect(xywh=(x + sx, y + sy, w, h))
+
     def draw(self, img, color, thick=1):
         """Draw rectangle onto the image inplace"""
         x1, y1, x2, y2 = self.xyxy_int
