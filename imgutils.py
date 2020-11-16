@@ -21,6 +21,7 @@ class Rect:
         cnt += coordinates is not None
         cnt += xywh is not None
         cnt += cxcywh is not None
+        cnt += xyxy is not None
         if cnt != 1:
             raise ValueError("Please set exactly one of the arguments.")
         if coordinates is not None:
