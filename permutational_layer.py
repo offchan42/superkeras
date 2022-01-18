@@ -55,6 +55,7 @@ from inspect import signature
 
 from tensorflow.keras.layers import Dense, Input, average, concatenate, maximum
 from tensorflow.keras.models import Model
+import numpy as np
 
 from .layers import LayerStack, repeat_layers
 
@@ -314,10 +315,11 @@ if __name__ == "__main__":
     perm_layer.summary()
 
     x = [[[1, 2, 3, 4]], [[4, 3, 2, 1]], [[1, 2, 3, 4]]]
-    predictions = perm_layer.predict(x)
     print("# Input Data")
     print(x)
+    x = [np.array(e) for e in x]
     print("# Output Features")
+    predictions = perm_layer.predict(x)
     for pred in predictions:
         print(pred)
     print(
@@ -363,16 +365,19 @@ if __name__ == "__main__":
     print("## Input/Output 1")
     x = [[[0, 0, 0, 0]], [[1, 2, 3, 4]], [[4, 3, 2, 1]]]
     print(x)
+    x = [np.array(e) for e in x]
     print(model.predict(x))
 
     print("## Input/Output 2")
     x = [[[1, 2, 3, 4]], [[0, 0, 0, 0]], [[4, 3, 2, 1]]]
     print(x)
+    x = [np.array(e) for e in x]
     print(model.predict(x))
 
     print("## Input/Output 3")
     x = [[[4, 3, 2, 1]], [[0, 0, 0, 0]], [[1, 2, 3, 4]]]
     print(x)
+    x = [np.array(e) for e in x]
     print(model.predict(x))
     print()
     print("Isn't this cool !?")
